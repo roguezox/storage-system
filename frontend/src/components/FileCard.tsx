@@ -10,7 +10,8 @@ import Cookies from 'js-cookie';
 interface FileCardProps {
     id: string;
     name: string;
-    url: string;
+    originalName?: string;
+    url?: string;
     mimeType: string;
     size: number;
     createdAt: string;
@@ -19,7 +20,7 @@ interface FileCardProps {
     onRefresh: () => void;
 }
 
-export function FileCard({ id, name, url, mimeType, size, createdAt, isShared, shareId, onRefresh }: FileCardProps) {
+export function FileCard({ id, name, originalName, url, mimeType, size, createdAt, isShared, shareId, onRefresh }: FileCardProps) {
     const [showMenu, setShowMenu] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [newName, setNewName] = useState(name);
@@ -121,7 +122,7 @@ export function FileCard({ id, name, url, mimeType, size, createdAt, isShared, s
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = name || 'download';
+            a.download = originalName || name || 'download';
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -131,6 +132,8 @@ export function FileCard({ id, name, url, mimeType, size, createdAt, isShared, s
             alert('Failed to download file');
         }
     };
+
+    const displayName = originalName || name;
 
     return (
         <>

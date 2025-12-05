@@ -23,7 +23,8 @@ interface Folder {
 interface File {
     _id: string;
     name: string;
-    url: string;
+    originalName?: string;
+    url?: string;
     mimeType: string;
     size: number;
     createdAt: string;
@@ -169,6 +170,7 @@ export default function FolderDetailPage() {
                                 key={file._id}
                                 id={file._id}
                                 name={file.name}
+                                originalName={file.originalName}
                                 url={file.url}
                                 mimeType={file.mimeType}
                                 size={file.size}
