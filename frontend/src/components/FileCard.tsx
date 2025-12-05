@@ -105,7 +105,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
 
     const handleDownload = async () => {
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
             const token = Cookies.get('token');
 
             const response = await fetch(`${baseUrl}/api/files/${id}/download`, {
@@ -156,7 +156,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                             autoFocus
                         />
                     ) : (
-                        <h3 className="file-name">{name}</h3>
+                        <h3 className="file-name">{originalName || name}</h3>
                     )}
 
                     <p className="file-meta">
