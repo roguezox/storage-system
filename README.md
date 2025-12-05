@@ -4,8 +4,8 @@ A full-stack cloud storage application with folder management, file uploads, and
 
 ## 🚀 Live Demo
 
-- **Frontend:** [Your Vercel Frontend URL]
-- **Backend:** [Your Vercel Backend URL]
+- **Frontend:** https://storage-system-sooty.vercel.app/
+- **Backend:** https://storage-system-uysk.vercel.app/
 
 ## 📋 Features
 

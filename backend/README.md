@@ -2,6 +2,10 @@
 
 A Node.js/Express REST API for a cloud storage platform with user authentication, folder/file management, and sharing capabilities.
 
+## 🚀 Live Demo
+
+**API URL:** https://storage-system-uysk.vercel.app/
+
 ## Tech Stack
 
 - **Runtime:** Node.js

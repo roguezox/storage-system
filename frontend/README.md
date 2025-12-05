@@ -2,6 +2,10 @@
 
 A Next.js application providing a modern, responsive UI for the cloud storage platform.
 
+## 🚀 Live Demo
+
+**App URL:** https://storage-system-sooty.vercel.app/
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router)
