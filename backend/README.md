@@ -1,8 +1,15 @@
-# Storage Platform - Backend
+# Storage Platform Backend
 
-A Node.js/Express API for a simplified internal "drive" storage system.
+A Node.js/Express REST API for a cloud storage platform with user authentication, folder/file management, and sharing capabilities.
 
----
+## Tech Stack
+
+- **Runtime:** Node.js
+- **Framework:** Express.js 5
+- **Database:** MongoDB with Mongoose ODM
+- **Authentication:** JWT (JSON Web Tokens)
+- **File Storage:** MongoDB (base64 encoded)
+- **Deployment:** Vercel Serverless
 
 ## Quick Start
 
@@ -10,34 +17,12 @@ A Node.js/Express API for a simplified internal "drive" storage system.
 # Install dependencies
 npm install
 
+# Create .env file
+cp .env.example .env
+
 # Start development server
 npm run dev
 ```
-
-The server runs on `http://localhost:5000`.
-
----
-
-## Project Structure
-
-```
-backend/
-├── app.js              # Main entry point
-├── models/
-│   ├── User.js         # User schema (auth)
-│   ├── Folder.js       # Folder schema
-│   └── File.js         # File schema
-├── routes/
-│   ├── auth.js         # Login/Register endpoints
-│   ├── folders.js      # Folder CRUD + sharing
-│   ├── files.js        # File upload + CRUD
-│   └── public.js       # Public share access
-├── middleware/
-│   └── auth.js         # JWT verification
-└── uploads/            # Uploaded files storage
-```
-
----
 
 ## Environment Variables
 
@@ -49,51 +34,27 @@ JWT_SECRET=any_secret_key_you_want
 PORT=5000
 ```
 
----
-
 ## API Endpoints
 
 ### Authentication
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Create new user |
-| POST | `/api/auth/login` | Login, get JWT token |
-| GET | `/api/auth/me` | Get current user |
-
-**Request body for register/login:**
-```json
-{
-  "email": "user@example.com",
-  "password": "yourpassword"
-}
-```
-
----
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login and get JWT token |
+| GET | `/api/auth/me` | Get current user info |
 
 ### Folders
-
-All folder routes require `Authorization: Bearer <token>` header.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/folders` | Get all root folders |
 | GET | `/api/folders/:id` | Get folder with subfolders & files |
-| POST | `/api/folders` | Create folder |
+| POST | `/api/folders` | Create new folder |
 | PUT | `/api/folders/:id` | Rename folder |
-| DELETE | `/api/folders/:id` | Delete folder (cascades) |
+| DELETE | `/api/folders/:id` | Delete folder (cascade) |
 | POST | `/api/folders/:id/share` | Generate share link |
 | DELETE | `/api/folders/:id/share` | Revoke share link |
-
-**Create folder:**
-```json
-{
-  "name": "My Folder",
-  "parentId": "optional_parent_folder_id"
-}
-```
-
----
 
 ### Files
 
@@ -101,35 +62,29 @@ All folder routes require `Authorization: Bearer <token>` header.
 |--------|----------|-------------|
 | GET | `/api/files/folder/:folderId` | Get files in folder |
 | POST | `/api/files` | Upload file (multipart/form-data) |
+| GET | `/api/files/:id/download` | Download file |
 | PUT | `/api/files/:id` | Rename file |
 | DELETE | `/api/files/:id` | Delete file |
 | POST | `/api/files/:id/share` | Generate share link |
 | DELETE | `/api/files/:id/share` | Revoke share link |
 
-**Upload file:**
-- Use `multipart/form-data`
-- Fields: `file` (the file) + `folderId` (target folder)
-
----
-
-### Public Access
+### Public (No Auth Required)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/public/:shareId` | Get shared folder/file (no auth) |
-
-Returns folder contents or file details for anyone with the share link.
-
----
+| GET | `/api/public/:shareId` | Get shared folder/file info |
+| GET | `/api/public/:shareId/folder/:folderId` | Navigate into subfolder |
+| GET | `/api/public/:shareId/file/:fileId/download` | Download file from shared folder |
+| GET | `/api/public/:shareId/download` | Download directly shared file |
 
 ## Database Models
 
 ### User
 ```javascript
 {
-  email: String,
-  password: String,  // Hashed with bcrypt
-  role: 'admin',
+  email: String (unique, required),
+  password: String (hashed, required),
+  role: String (default: 'admin'),
   createdAt: Date
 }
 ```
@@ -137,12 +92,12 @@ Returns folder contents or file details for anyone with the share link.
 ### Folder
 ```javascript
 {
-  name: String,
-  parentId: ObjectId | null,  // null = root folder
-  ownerId: ObjectId,
-  path: String,               // e.g., "/Projects/Design/"
-  isShared: Boolean,
-  shareId: String | null,
+  name: String (required),
+  parentId: ObjectId (ref: Folder, null for root),
+  ownerId: ObjectId (ref: User, required),
+  path: String (e.g., "/Documents/Projects/"),
+  isShared: Boolean (default: false),
+  shareId: String (UUID when shared),
   createdAt: Date
 }
 ```
@@ -150,78 +105,82 @@ Returns folder contents or file details for anyone with the share link.
 ### File
 ```javascript
 {
-  name: String,
+  name: String (required),
   originalName: String,
-  folderId: ObjectId,
-  ownerId: ObjectId,
-  url: String,           // Local path like "/uploads/abc123.pdf"
+  folderId: ObjectId (ref: Folder, required),
+  ownerId: ObjectId (ref: User, required),
+  data: String (base64 encoded file content),
   mimeType: String,
-  size: Number,
-  isShared: Boolean,
-  shareId: String | null,
+  size: Number (bytes),
+  isShared: Boolean (default: false),
+  shareId: String (UUID when shared),
   createdAt: Date
 }
 ```
 
----
+## File Storage
 
-## How Authentication Works
+Files are stored directly in MongoDB as base64-encoded strings. This approach:
+- ✅ Works with serverless environments (Vercel)
+- ✅ No external storage service needed
+- ⚠️ Limited to 16MB per file (MongoDB document limit)
 
-1. User registers or logs in → server returns a JWT token
-2. Frontend stores this token (in cookies)
-3. Every API request includes `Authorization: Bearer <token>`
-4. Middleware decodes the token and attaches `req.userId`
-5. Routes use `req.userId` to scope data to that user
+## Authentication Flow
 
----
+1. User registers/logs in → receives JWT token
+2. Token stored in `Authorization: Bearer <token>` header
+3. Auth middleware validates token on protected routes
+4. Token expires after 7 days
 
-## How Sharing Works
+## Sharing Mechanism
 
-1. User clicks "Share" on a folder/file
-2. Backend generates a UUID (`shareId`) and saves it
-3. Frontend copies `https://your-app.com/public/{shareId}`
-4. Anyone with that URL can access `/api/public/{shareId}`
-5. User can "Unshare" to remove the `shareId`
-
----
+1. User calls `/share` endpoint on folder/file
+2. System generates unique UUID (`shareId`)
+3. Public can access via `/api/public/:shareId`
+4. For shared folders, users can navigate subfolders and download files
+5. User can revoke access by calling DELETE `/share`
 
 ## Error Handling
 
 All errors return JSON:
-
 ```json
 {
-  "error": "Human-readable error message"
+  "error": "Error message here"
 }
 ```
 
 Common status codes:
-- `400` - Bad request (missing fields)
-- `401` - Unauthorized (invalid/missing token)
-- `404` - Not found
+- `400` - Bad request / validation error
+- `401` - Unauthorized / invalid token
+- `404` - Resource not found
 - `500` - Server error
 
----
+## Project Structure
 
-## What I'd Improve With More Time
-
-- Add rate limiting
-- Add file type validation
-- Add storage quota per user
-- Add folder/file move functionality
-- Add pagination for large folders
-- Add real file previews (images, PDFs)
-- Write automated tests
-
----
+```
+backend/
+├── models/
+│   ├── User.js
+│   ├── Folder.js
+│   └── File.js
+├── routes/
+│   ├── auth.js
+│   ├── folders.js
+│   ├── files.js
+│   └── public.js
+├── middleware/
+│   └── auth.js
+├── app.js
+├── vercel.json
+└── package.json
+```
 
 ## Dependencies
 
 - `express` - Web framework
 - `mongoose` - MongoDB ODM
 - `bcryptjs` - Password hashing
-- `jsonwebtoken` - JWT auth
-- `multer` - File uploads
+- `jsonwebtoken` - JWT authentication
+- `multer` - File upload handling
 - `cors` - Cross-origin requests
 - `dotenv` - Environment variables
-- `uuid` - Generate share IDs

@@ -1,23 +1,24 @@
 {
     "info": {
         "name": "Storage Platform API",
-        "description": "API collection for the Storage Platform (Drive) application.\n\n## Setup\n1. Import this collection into Postman\n2. Set the `baseUrl` variable to `http://localhost:5000`\n3. Register a user, then login to get a token\n4. The token auto-saves to the `token` variable\n\n## Auth Flow\nAll endpoints except Register, Login, and Public require the Bearer token.",
+        "description": "Complete API collection for the Storage Platform backend",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
         {
             "key": "baseUrl",
-            "value": "http://localhost:5000"
+            "value": "http://localhost:5000",
+            "type": "string"
         },
         {
             "key": "token",
-            "value": ""
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
         {
             "name": "Auth",
-            "description": "Authentication endpoints for user registration and login.",
             "item": [
                 {
                     "name": "Register",
@@ -31,7 +32,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+                            "raw": "{\n  \"email\": \"demo@test.com\",\n  \"password\": \"password123\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/auth/register",
@@ -43,10 +44,8 @@
                                 "auth",
                                 "register"
                             ]
-                        },
-                        "description": "Create a new user account.\n\n**Request:**\n- `email` (string, required): User email\n- `password` (string, required): Min 6 characters\n\n**Response:**\n- `token`: JWT token for authentication\n- `user`: User object with id, email, role"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Login",
@@ -58,7 +57,6 @@
                                     "var jsonData = pm.response.json();",
                                     "if (jsonData.token) {",
                                     "    pm.collectionVariables.set('token', jsonData.token);",
-                                    "    console.log('Token saved to collection variables');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -75,7 +73,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+                            "raw": "{\n  \"email\": \"demo@test.com\",\n  \"password\": \"password123\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/auth/login",
@@ -87,10 +85,8 @@
                                 "auth",
                                 "login"
                             ]
-                        },
-                        "description": "Login with existing credentials.\n\n**Note:** The token is automatically saved to collection variables on success.\n\n**Request:**\n- `email` (string, required)\n- `password` (string, required)\n\n**Response:**\n- `token`: JWT token (valid for 7 days)\n- `user`: User object"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Get Current User",
@@ -112,19 +108,16 @@
                                 "auth",
                                 "me"
                             ]
-                        },
-                        "description": "Get the currently authenticated user's details.\n\n**Authorization:** Bearer token required\n\n**Response:**\n- `user`: { id, email, role }"
-                    },
-                    "response": []
+                        }
+                    }
                 }
             ]
         },
         {
             "name": "Folders",
-            "description": "CRUD operations for folders. All endpoints require authentication.",
             "item": [
                 {
-                    "name": "Get All Root Folders",
+                    "name": "Get Root Folders",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -142,10 +135,8 @@
                                 "api",
                                 "folders"
                             ]
-                        },
-                        "description": "Get all top-level folders (folders without a parent).\n\n**Authorization:** Bearer token required\n\n**Response:** Array of folder objects"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Get Folder by ID",
@@ -170,14 +161,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FOLDER_ID_HERE",
-                                    "description": "Folder ID"
+                                    "value": "folder_id_here"
                                 }
                             ]
-                        },
-                        "description": "Get a specific folder with its subfolders, files, and breadcrumb path.\n\n**Authorization:** Bearer token required\n\n**Response:**\n- `folder`: Folder object\n- `subfolders`: Array of child folders\n- `files`: Array of files in this folder\n- `breadcrumb`: Array of { id, name } for navigation"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Create Folder",
@@ -185,17 +173,17 @@
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Authorization",
                                 "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"My New Folder\",\n  \"parentId\": null\n}"
+                            "raw": "{\n  \"name\": \"New Folder\",\n  \"parentId\": null\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/folders",
@@ -206,10 +194,8 @@
                                 "api",
                                 "folders"
                             ]
-                        },
-                        "description": "Create a new folder.\n\n**Authorization:** Bearer token required\n\n**Request:**\n- `name` (string, required): Folder name\n- `parentId` (string, optional): Parent folder ID. Omit or null for root folder.\n\n**Response:** Created folder object"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Rename Folder",
@@ -217,12 +203,12 @@
                         "method": "PUT",
                         "header": [
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Authorization",
                                 "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
                             }
                         ],
                         "body": {
@@ -242,13 +228,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FOLDER_ID_HERE"
+                                    "value": "folder_id_here"
                                 }
                             ]
-                        },
-                        "description": "Rename an existing folder.\n\n**Authorization:** Bearer token required\n\n**Request:**\n- `name` (string, required): New folder name\n\n**Response:** Updated folder object"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Delete Folder",
@@ -273,13 +257,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FOLDER_ID_HERE"
+                                    "value": "folder_id_here"
                                 }
                             ]
-                        },
-                        "description": "Delete a folder and ALL its contents (subfolders and files) recursively.\n\n**Authorization:** Bearer token required\n\n**⚠️ Warning:** This action cannot be undone.\n\n**Response:** { message: 'Folder deleted successfully' }"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Share Folder",
@@ -305,13 +287,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FOLDER_ID_HERE"
+                                    "value": "folder_id_here"
                                 }
                             ]
-                        },
-                        "description": "Generate a public share link for a folder.\n\n**Authorization:** Bearer token required\n\n**Response:**\n- `shareId`: UUID for public access\n- `shareUrl`: Path to access shared content"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Unshare Folder",
@@ -337,19 +317,16 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FOLDER_ID_HERE"
+                                    "value": "folder_id_here"
                                 }
                             ]
-                        },
-                        "description": "Revoke the public share link for a folder.\n\n**Authorization:** Bearer token required\n\n**Response:** { message: 'Share link revoked' }"
-                    },
-                    "response": []
+                        }
+                    }
                 }
             ]
         },
         {
             "name": "Files",
-            "description": "File upload and management. All endpoints require authentication.",
             "item": [
                 {
                     "name": "Get Files in Folder",
@@ -375,13 +352,11 @@
                             "variable": [
                                 {
                                     "key": "folderId",
-                                    "value": "FOLDER_ID_HERE"
+                                    "value": "folder_id_here"
                                 }
                             ]
-                        },
-                        "description": "Get all files within a specific folder.\n\n**Authorization:** Bearer token required\n\n**Response:** Array of file objects"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Upload File",
@@ -399,13 +374,12 @@
                                 {
                                     "key": "file",
                                     "type": "file",
-                                    "description": "The file to upload"
+                                    "src": ""
                                 },
                                 {
                                     "key": "folderId",
-                                    "value": "FOLDER_ID_HERE",
-                                    "type": "text",
-                                    "description": "Target folder ID"
+                                    "value": "folder_id_here",
+                                    "type": "text"
                                 }
                             ]
                         },
@@ -418,10 +392,38 @@
                                 "api",
                                 "files"
                             ]
-                        },
-                        "description": "Upload a file to a folder.\n\n**Authorization:** Bearer token required\n\n**Content-Type:** multipart/form-data\n\n**Form Fields:**\n- `file` (file, required): The file to upload\n- `folderId` (string, required): Target folder ID\n\n**Response:** Created file object with:\n- `name`: Saved filename (UUID + extension)\n- `originalName`: Original filename\n- `url`: Path to access the file\n- `mimeType`: File MIME type\n- `size`: File size in bytes"
-                    },
-                    "response": []
+                        }
+                    }
+                },
+                {
+                    "name": "Download File",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/files/:id/download",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "files",
+                                ":id",
+                                "download"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "file_id_here"
+                                }
+                            ]
+                        }
+                    }
                 },
                 {
                     "name": "Rename File",
@@ -429,17 +431,17 @@
                         "method": "PUT",
                         "header": [
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Authorization",
                                 "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"new-filename.pdf\"\n}"
+                            "raw": "{\n  \"name\": \"renamed-file.txt\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/files/:id",
@@ -454,13 +456,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FILE_ID_HERE"
+                                    "value": "file_id_here"
                                 }
                             ]
-                        },
-                        "description": "Rename a file (display name only, not the stored filename).\n\n**Authorization:** Bearer token required\n\n**Request:**\n- `name` (string, required): New display name\n\n**Response:** Updated file object"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Delete File",
@@ -485,13 +485,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FILE_ID_HERE"
+                                    "value": "file_id_here"
                                 }
                             ]
-                        },
-                        "description": "Delete a file (both database record and physical file).\n\n**Authorization:** Bearer token required\n\n**Response:** { message: 'File deleted successfully' }"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Share File",
@@ -517,13 +515,11 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FILE_ID_HERE"
+                                    "value": "file_id_here"
                                 }
                             ]
-                        },
-                        "description": "Generate a public share link for a file.\n\n**Authorization:** Bearer token required\n\n**Response:**\n- `shareId`: UUID for public access\n- `shareUrl`: Path to access shared file"
-                    },
-                    "response": []
+                        }
+                    }
                 },
                 {
                     "name": "Unshare File",
@@ -549,19 +545,16 @@
                             "variable": [
                                 {
                                     "key": "id",
-                                    "value": "FILE_ID_HERE"
+                                    "value": "file_id_here"
                                 }
                             ]
-                        },
-                        "description": "Revoke the public share link for a file.\n\n**Authorization:** Bearer token required\n\n**Response:** { message: 'Share link revoked' }"
-                    },
-                    "response": []
+                        }
+                    }
                 }
             ]
         },
         {
-            "name": "Public",
-            "description": "Public access endpoints for shared content. No authentication required.",
+            "name": "Public (No Auth)",
             "item": [
                 {
                     "name": "Get Shared Content",
@@ -581,14 +574,119 @@
                             "variable": [
                                 {
                                     "key": "shareId",
-                                    "value": "SHARE_ID_HERE",
-                                    "description": "The share ID from a share link"
+                                    "value": "share_uuid_here"
                                 }
                             ]
-                        },
-                        "description": "Access shared folder or file content.\n\n**No authentication required.**\n\n**Response for Folder:**\n- `type`: 'folder'\n- `folder`: Folder details\n- `subfolders`: Child folders\n- `files`: Files in folder\n\n**Response for File:**\n- `type`: 'file'\n- `file`: File details including download URL"
-                    },
-                    "response": []
+                        }
+                    }
+                },
+                {
+                    "name": "Navigate Shared Subfolder",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/public/:shareId/folder/:folderId",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "public",
+                                ":shareId",
+                                "folder",
+                                ":folderId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "shareId",
+                                    "value": "share_uuid_here"
+                                },
+                                {
+                                    "key": "folderId",
+                                    "value": "folder_id_here"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Download File from Shared Folder",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/public/:shareId/file/:fileId/download",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "public",
+                                ":shareId",
+                                "file",
+                                ":fileId",
+                                "download"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "shareId",
+                                    "value": "share_uuid_here"
+                                },
+                                {
+                                    "key": "fileId",
+                                    "value": "file_id_here"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Download Directly Shared File",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/public/:shareId/download",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "public",
+                                ":shareId",
+                                "download"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "shareId",
+                                    "value": "share_uuid_here"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Health Check",
+            "item": [
+                {
+                    "name": "API Health",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/health",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "health"
+                            ]
+                        }
+                    }
                 }
             ]
         }

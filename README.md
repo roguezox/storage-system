@@ -1,122 +1,117 @@
 # Storage Platform
 
-A full-stack storage platform (like a simplified Google Drive) built for managing folders, files, and sharing.
+A full-stack cloud storage application with folder management, file uploads, and sharing capabilities.
 
----
+## 🚀 Live Demo
 
-## Live Demo
+- **Frontend:** [Your Vercel Frontend URL]
+- **Backend:** [Your Vercel Backend URL]
 
-Start both servers and visit `http://localhost:3000`.
+## 📋 Features
 
-**Test credentials** (after registering):
-- Email: any email you register
-- Password: your chosen password
+- **User Authentication** - Register, login, JWT-based sessions
+- **Folder Management** - Create, rename, delete, nested folders
+- **File Management** - Upload, download, rename, delete files
+- **Sharing** - Generate public links for folders/files
+- **Public Access** - Navigate shared folders, download files
+- **Responsive Design** - Works on desktop and mobile
 
----
-
-## Tech Stack
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Next.js 16, React 19, TypeScript |
-| Backend | Node.js, Express 5 |
-| Database | MongoDB (Atlas) |
-| Auth | JWT (jsonwebtoken + bcrypt) |
-| State | Zustand |
-| Styling | Custom CSS (design system) |
+| Frontend | Next.js 16, TypeScript, Zustand |
+| Backend | Express.js 5, Node.js |
+| Database | MongoDB Atlas |
+| File Storage | MongoDB (base64) |
+| Deployment | Vercel |
 
----
-
-## Features
-
-### For Admins (Logged In)
-- 📁 Create, rename, delete folders
-- 📁 Nest folders infinitely
-- 📄 Upload files to any folder
-- 📄 Rename, delete files
-- 🔗 Share folders/files via public link
-- 🔒 Revoke share links anytime
-
-### For Public (No Login)
-- 👁️ View shared folders/files
-- ⬇️ Download shared files
-- 🚫 No edit/delete access
-
----
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 drive/
-├── backend/           # Express API
-│   ├── models/        # MongoDB schemas
-│   ├── routes/        # API endpoints
-│   ├── middleware/    # JWT auth
-│   └── uploads/       # File storage
-│
-└── frontend/          # Next.js app
-    ├── src/app/       # Pages (App Router)
-    ├── src/components/
-    ├── src/lib/       # API client
-    └── src/stores/    # State management
+├── backend/           # Express.js API
+│   ├── models/        # Mongoose schemas
+│   ├── routes/        # API routes
+│   ├── middleware/    # Auth middleware
+│   └── app.js         # Entry point
+├── frontend/          # Next.js app
+│   └── src/
+│       ├── app/       # Pages (App Router)
+│       ├── components/# React components
+│       ├── stores/    # Zustand stores
+│       └── lib/       # API client
+└── README.md
 ```
 
----
+## 🏃 Quick Start
 
-## Getting Started
+### Prerequisites
+- Node.js 18+
+- MongoDB Atlas account
 
-### 1. Backend
+### Backend Setup
 
 ```bash
-cd backend
+cd drive/backend
 npm install
+
+# Create .env file
+echo "MONGODB_URI=your_mongodb_uri" > .env
+echo "JWT_SECRET=your_secret" >> .env
+echo "PORT=5000" >> .env
+
 npm run dev
 ```
 
-Runs on `http://localhost:5000`
-
-### 2. Frontend
+### Frontend Setup
 
 ```bash
-cd frontend
+cd drive/frontend
 npm install
+
+# Create .env.local file
+echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+
 npm run dev
 ```
 
-Runs on `http://localhost:3000`
+## 🔌 API Summary
 
----
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/auth/register` | Create account |
+| `POST /api/auth/login` | Get JWT token |
+| `GET /api/folders` | List root folders |
+| `GET /api/folders/:id` | Get folder contents |
+| `POST /api/folders` | Create folder |
+| `POST /api/files` | Upload file |
+| `GET /api/files/:id/download` | Download file |
+| `POST /api/folders/:id/share` | Share folder |
+| `GET /api/public/:shareId` | Access shared content |
 
-## Environment Setup
+## 🔒 Environment Variables
 
-### Backend `.env`
-
+### Backend
 ```
-MONGODB_URI=mongodb+srv://...your-connection-string
-JWT_SECRET=any-secret-key
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=your-secret-key
 PORT=5000
 ```
 
-### Frontend `.env.local` (optional)
-
+### Frontend
 ```
 NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
----
+## 📝 What I'd Add With More Time
 
-## API Summary
-
-| Endpoint | Auth | Description |
-|----------|------|-------------|
-| POST `/api/auth/register` | No | Create user |
-| POST `/api/auth/login` | No | Get JWT token |
-| GET `/api/folders` | Yes | List root folders |
-| POST `/api/folders` | Yes | Create folder |
-| DELETE `/api/folders/:id` | Yes | Delete folder |
-| POST `/api/files` | Yes | Upload file |
-| GET `/api/public/:shareId` | No | Access shared item |
-
-Full API docs in [backend/README.md](./backend/README.md).
-
+- [ ] Drag-and-drop file uploads
+- [ ] File preview (images, PDFs)
+- [ ] Search functionality
+- [ ] Bulk operations (multi-select delete)
+- [ ] Storage quota management
+- [ ] File versioning
+- [ ] Collaborative features
+- [ ] External storage (S3/Cloudinary) for larger files
 

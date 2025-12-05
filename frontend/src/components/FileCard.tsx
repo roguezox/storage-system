@@ -5,6 +5,7 @@ import { FiFile, FiMoreVertical, FiEdit2, FiTrash2, FiShare2, FiLink, FiDownload
 import { filesAPI } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import Cookies from 'js-cookie';
 
 interface FileCardProps {
     id: string;
@@ -101,9 +102,34 @@ export function FileCard({ id, name, url, mimeType, size, createdAt, isShared, s
         }
     };
 
-    const handleDownload = () => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        window.open(`${baseUrl}${url}`, '_blank');
+    const handleDownload = async () => {
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const token = Cookies.get('token');
+
+            const response = await fetch(`${baseUrl}/api/files/${id}/download`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Download failed');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name || 'download';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Failed to download file');
+        }
     };
 
     return (

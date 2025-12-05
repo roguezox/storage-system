@@ -84,4 +84,5 @@ export const filesAPI = {
 // Public API
 export const publicAPI = {
     getShared: (shareId: string) => api.get(`/api/public/${shareId}`),
+    getSubfolder: (shareId: string, folderId: string) => api.get(`/api/public/${shareId}/folder/${folderId}`),
 };

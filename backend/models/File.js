@@ -3,12 +3,10 @@ const mongoose = require('mongoose');
 const fileSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        trim: true
+        required: true
     },
     originalName: {
-        type: String,
-        required: true
+        type: String
     },
     folderId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -20,17 +18,16 @@ const fileSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    url: {
+    // Store file data as base64 string
+    data: {
         type: String,
         required: true
     },
     mimeType: {
-        type: String,
-        default: 'application/octet-stream'
+        type: String
     },
     size: {
-        type: Number,
-        default: 0
+        type: Number
     },
     isShared: {
         type: Boolean,
@@ -39,7 +36,7 @@ const fileSchema = new mongoose.Schema({
     shareId: {
         type: String,
         default: null,
-        index: true  // Index for fast lookups, but not unique
+        index: true
     },
     createdAt: {
         type: Date,

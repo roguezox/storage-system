@@ -3,28 +3,45 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { publicAPI } from '@/lib/api';
-import { FiFolder, FiFile, FiDownload, FiAlertCircle } from 'react-icons/fi';
+import { FiFolder, FiFile, FiDownload, FiAlertCircle, FiChevronRight, FiArrowLeft } from 'react-icons/fi';
 
 interface SharedFolder {
-    id: string;
+    _id: string;
     name: string;
     createdAt: string;
-    subfolders: Array<{ name: string; createdAt: string; shareId?: string }>;
-    files: Array<{ name: string; url: string; mimeType: string; size: number; createdAt: string }>;
+    parentId?: string;
 }
 
 interface SharedFile {
-    id: string;
+    _id: string;
     name: string;
-    url: string;
+    originalName: string;
     mimeType: string;
     size: number;
     createdAt: string;
 }
 
-type SharedData =
-    | { type: 'folder'; data: SharedFolder }
-    | { type: 'file'; data: SharedFile };
+interface BreadcrumbItem {
+    _id: string;
+    name: string;
+}
+
+interface FolderResponse {
+    type: 'folder';
+    folder: SharedFolder;
+    subfolders: SharedFolder[];
+    files: SharedFile[];
+    breadcrumb?: BreadcrumbItem[];
+    rootShareId: string;
+    rootFolderId?: string;
+}
+
+interface FileResponse {
+    type: 'file';
+    file: SharedFile;
+}
+
+type SharedData = FolderResponse | FileResponse;
 
 export default function PublicSharePage() {
     const params = useParams();
@@ -33,22 +50,36 @@ export default function PublicSharePage() {
     const [sharedData, setSharedData] = useState<SharedData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+    const [navigationStack, setNavigationStack] = useState<BreadcrumbItem[]>([]);
 
     useEffect(() => {
-        const fetchSharedData = async () => {
-            try {
-                const response = await publicAPI.getShared(shareId);
-                setSharedData(response.data);
-            } catch (err: unknown) {
-                const axiosError = err as { response?: { data?: { error?: string } } };
-                setError(axiosError.response?.data?.error || 'Failed to load shared content');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchSharedData();
+        fetchData();
     }, [shareId]);
+
+    const fetchData = async (folderId?: string) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            let response;
+            if (folderId) {
+                response = await publicAPI.getSubfolder(shareId, folderId);
+            } else {
+                response = await publicAPI.getShared(shareId);
+            }
+            setSharedData(response.data);
+            setCurrentFolderId(folderId || null);
+
+            if (response.data.breadcrumb) {
+                setNavigationStack(response.data.breadcrumb);
+            }
+        } catch (err: unknown) {
+            const axiosError = err as { response?: { data?: { error?: string } } };
+            setError(axiosError.response?.data?.error || 'Failed to load shared content');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const formatSize = (bytes: number) => {
         if (bytes < 1024) return `${bytes} B`;
@@ -56,15 +87,40 @@ export default function PublicSharePage() {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    const handleDownload = (url: string) => {
+    const handleDownloadFile = (fileId: string) => {
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        window.open(`${baseUrl}${url}`, '_blank');
+        window.open(`${baseUrl}/api/public/${shareId}/file/${fileId}/download`, '_blank');
+    };
+
+    const handleDownloadSharedFile = () => {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        window.open(`${baseUrl}/api/public/${shareId}/download`, '_blank');
+    };
+
+    const navigateToFolder = (folderId: string) => {
+        fetchData(folderId);
+    };
+
+    const navigateBack = () => {
+        if (navigationStack.length > 1) {
+            const parentIdx = navigationStack.length - 2;
+            const parentId = navigationStack[parentIdx]._id;
+            fetchData(parentId);
+        } else {
+            // Go back to root
+            fetchData();
+        }
+    };
+
+    const navigateToBreadcrumb = (folderId: string, index: number) => {
+        if (index === 0 && !currentFolderId) return;
+        fetchData(folderId);
     };
 
     if (isLoading) {
         return (
             <div className="public-page">
-                <div className="flex items-center justify-center h-64">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '64vh' }}>
                     <div className="spinner"></div>
                 </div>
             </div>
@@ -101,83 +157,182 @@ export default function PublicSharePage() {
             <div className="public-content">
                 {sharedData.type === 'folder' ? (
                     <div className="public-card">
+                        {/* Navigation */}
                         <div style={{ marginBottom: 24 }}>
+                            {currentFolderId && (
+                                <button
+                                    onClick={navigateBack}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--accent)',
+                                        cursor: 'pointer',
+                                        padding: '8px 0',
+                                        marginBottom: 12
+                                    }}
+                                >
+                                    <FiArrowLeft size={18} />
+                                    Back
+                                </button>
+                            )}
+
+                            {/* Breadcrumb */}
+                            {navigationStack.length > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
+                                    {navigationStack.map((item, idx) => (
+                                        <span key={item._id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            {idx > 0 && <FiChevronRight size={14} color="var(--text-muted)" />}
+                                            <button
+                                                onClick={() => navigateToBreadcrumb(item._id, idx)}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: idx === navigationStack.length - 1 ? 'var(--text-primary)' : 'var(--accent)',
+                                                    cursor: idx === navigationStack.length - 1 ? 'default' : 'pointer',
+                                                    padding: 0,
+                                                    fontSize: 14
+                                                }}
+                                            >
+                                                {item.name}
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                                <FiFolder size={32} color="var(--primary)" />
-                                <h2 style={{ fontSize: 20, fontWeight: 600 }}>{sharedData.data.name}</h2>
+                                <FiFolder size={32} color="var(--accent)" />
+                                <h2 style={{ fontSize: 20, fontWeight: 600 }}>{sharedData.folder.name}</h2>
                             </div>
-                            <p style={{ color: 'var(--foreground-muted)', fontSize: 14 }}>
-                                Shared on {new Date(sharedData.data.createdAt).toLocaleDateString()}
+                            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+                                Shared on {new Date(sharedData.folder.createdAt).toLocaleDateString()}
                             </p>
                         </div>
 
-                        {sharedData.data.subfolders.length > 0 && (
+                        {/* Subfolders */}
+                        {sharedData.subfolders && sharedData.subfolders.length > 0 && (
                             <div style={{ marginBottom: 24 }}>
-                                <h3 style={{ fontSize: 14, color: 'var(--foreground-secondary)', marginBottom: 12 }}>
-                                    Folders ({sharedData.data.subfolders.length})
+                                <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Folders ({sharedData.subfolders.length})
                                 </h3>
-                                {sharedData.data.subfolders.map((folder, idx) => (
-                                    <div key={idx} className="public-folder-item">
-                                        <span className="public-item-icon"><FiFolder /></span>
-                                        <span className="public-item-name">{folder.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {sharedData.data.files.length > 0 && (
-                            <div>
-                                <h3 style={{ fontSize: 14, color: 'var(--foreground-secondary)', marginBottom: 12 }}>
-                                    Files ({sharedData.data.files.length})
-                                </h3>
-                                {sharedData.data.files.map((file, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="public-file-item"
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => handleDownload(file.url)}
-                                    >
-                                        <span className="public-item-icon"><FiFile /></span>
-                                        <div style={{ flex: 1 }}>
-                                            <span className="public-item-name">{file.name}</span>
-                                            <p style={{ fontSize: 12, color: 'var(--foreground-muted)' }}>
-                                                {formatSize(file.size)}
-                                            </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {sharedData.subfolders.map((folder) => (
+                                        <div
+                                            key={folder._id}
+                                            onClick={() => navigateToFolder(folder._id)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 12,
+                                                padding: 12,
+                                                borderRadius: 6,
+                                                border: '1px solid var(--border)',
+                                                cursor: 'pointer',
+                                                transition: 'background 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <FiFolder size={20} color="var(--accent)" />
+                                            <span style={{ flex: 1 }}>{folder.name}</span>
+                                            <FiChevronRight size={16} color="var(--text-muted)" />
                                         </div>
-                                        <FiDownload size={18} color="var(--foreground-muted)" />
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         )}
 
-                        {sharedData.data.subfolders.length === 0 && sharedData.data.files.length === 0 && (
-                            <div className="empty-state">
-                                <p>This folder is empty</p>
+                        {/* Files */}
+                        {sharedData.files && sharedData.files.length > 0 && (
+                            <div>
+                                <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Files ({sharedData.files.length})
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {sharedData.files.map((file) => (
+                                        <div
+                                            key={file._id}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 12,
+                                                padding: 12,
+                                                borderRadius: 6,
+                                                border: '1px solid var(--border)',
+                                            }}
+                                        >
+                                            <FiFile size={20} color="var(--text-muted)" />
+                                            <div style={{ flex: 1 }}>
+                                                <span>{file.originalName || file.name}</span>
+                                                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                                                    {formatSize(file.size)}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleDownloadFile(file._id)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 6,
+                                                    padding: '6px 12px',
+                                                    background: 'var(--accent)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: 4,
+                                                    cursor: 'pointer',
+                                                    fontSize: 13
+                                                }}
+                                            >
+                                                <FiDownload size={14} />
+                                                Download
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
+
+                        {(!sharedData.subfolders || sharedData.subfolders.length === 0) &&
+                            (!sharedData.files || sharedData.files.length === 0) && (
+                                <div className="empty-state">
+                                    <p>This folder is empty</p>
+                                </div>
+                            )}
                     </div>
                 ) : (
                     <div className="public-card">
-                        <div
-                            className="public-file-item"
-                            style={{ cursor: 'pointer', padding: 24 }}
-                            onClick={() => handleDownload(sharedData.data.url)}
-                        >
-                            <span style={{ fontSize: 48 }}><FiFile /></span>
-                            <div style={{ flex: 1 }}>
-                                <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
-                                    {sharedData.data.name}
-                                </h2>
-                                <p style={{ fontSize: 14, color: 'var(--foreground-muted)' }}>
-                                    {formatSize(sharedData.data.size)} • {sharedData.data.mimeType}
-                                </p>
-                                <p style={{ fontSize: 12, color: 'var(--foreground-muted)', marginTop: 4 }}>
-                                    Shared on {new Date(sharedData.data.createdAt).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <button className="btn btn-primary">
+                        <div style={{ padding: 24, textAlign: 'center' }}>
+                            <FiFile size={64} color="var(--text-muted)" style={{ marginBottom: 16 }} />
+                            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+                                {sharedData.file.originalName || sharedData.file.name}
+                            </h2>
+                            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 4 }}>
+                                {formatSize(sharedData.file.size)} • {sharedData.file.mimeType}
+                            </p>
+                            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 24 }}>
+                                Shared on {new Date(sharedData.file.createdAt).toLocaleDateString()}
+                            </p>
+                            <button
+                                onClick={handleDownloadSharedFile}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: '12px 24px',
+                                    background: 'var(--accent)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    cursor: 'pointer',
+                                    fontSize: 15,
+                                    fontWeight: 500
+                                }}
+                            >
                                 <FiDownload size={18} />
-                                Download
+                                Download File
                             </button>
                         </div>
                     </div>

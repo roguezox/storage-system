@@ -1,8 +1,15 @@
-# Storage Platform - Frontend
+# Storage Platform Frontend
 
-A Next.js web app for managing folders and files, with public sharing.
+A Next.js application providing a modern, responsive UI for the cloud storage platform.
 
----
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **State Management:** Zustand
+- **HTTP Client:** Axios
+- **Styling:** Custom CSS Design System
+- **Deployment:** Vercel
 
 ## Quick Start
 
@@ -10,237 +17,161 @@ A Next.js web app for managing folders and files, with public sharing.
 # Install dependencies
 npm install
 
+# Create .env.local file
+echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+
 # Start development server
 npm run dev
 ```
 
-The app runs on `http://localhost:3000`.
+## Environment Variables
 
----
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:5000` |
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Home - redirects based on auth |
+| `/login` | Login page |
+| `/register` | Registration page |
+| `/dashboard` | User dashboard overview |
+| `/folders` | All root folders view |
+| `/folders/[id]` | Folder contents view |
+| `/public/[shareId]` | Public shared content view |
+
+## Features
+
+### Authentication
+- JWT-based authentication
+- Persistent login via cookies
+- Protected route handling
+- Auto-redirect for unauthenticated users
+
+### Folder Management
+- Create, rename, delete folders
+- Nested folder navigation
+- Breadcrumb navigation
+- Share folders with public links
+
+### File Management
+- Upload files to folders
+- Download files
+- Rename, delete files
+- Share files with public links
+- Files stored in MongoDB (up to 16MB)
+
+### Sharing
+- Generate shareable links for folders/files
+- Navigate through shared folder hierarchy
+- Download files from shared folders
+- Revoke share access anytime
+
+## State Management
+
+Using Zustand for lightweight state management:
+
+```typescript
+// Auth Store
+const useAuthStore = create((set) => ({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  login: async (email, password) => {...},
+  logout: () => {...},
+  checkAuth: () => {...}
+}));
+```
+
+## API Client
+
+Axios instance with interceptors for:
+- Auto-attach JWT token to requests
+- Handle 401 errors (redirect to login)
+- Base URL configuration
+
+```typescript
+import { authAPI, foldersAPI, filesAPI, publicAPI } from '@/lib/api';
+
+// Examples
+await authAPI.login(email, password);
+await foldersAPI.getAll();
+await filesAPI.upload(formData);
+await publicAPI.getShared(shareId);
+await publicAPI.getSubfolder(shareId, folderId);
+```
+
+## Key Components
+
+| Component | Description |
+|-----------|-------------|
+| `AuthProvider` | Wraps app, handles auth state |
+| `DashboardLayout` | Layout with sidebar & header |
+| `Sidebar` | Navigation sidebar |
+| `FolderCard` | Folder display with actions |
+| `FileCard` | File display with download |
+| `Modal` | Reusable modal component |
+| `Button` | Styled button variants |
+| `Input` | Form input with label |
+| `Breadcrumb` | Navigation breadcrumbs |
+
+## Styling
+
+Custom CSS design system with:
+- CSS variables for theming
+- Dark mode support
+- Responsive breakpoints
+- Minimal, professional aesthetic
+
+Key CSS variables:
+```css
+--accent: #2563eb;
+--bg-primary: #ffffff;
+--bg-secondary: #f9fafb;
+--text-primary: #111827;
+--text-muted: #6b7280;
+--border: #e5e7eb;
+```
 
 ## Project Structure
 
 ```
 frontend/
 ├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── layout.tsx          # Root layout with auth provider
-│   │   ├── page.tsx            # Home (redirects based on auth)
-│   │   ├── login/page.tsx      # Login form
-│   │   ├── register/page.tsx   # Registration form
-│   │   ├── dashboard/page.tsx  # Overview with stats
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── globals.css
+│   │   ├── login/
+│   │   ├── register/
+│   │   ├── dashboard/
 │   │   ├── folders/
-│   │   │   ├── page.tsx        # All root folders
-│   │   │   └── [id]/page.tsx   # Folder detail view
+│   │   │   ├── page.tsx
+│   │   │   └── [id]/page.tsx
 │   │   └── public/
-│   │       └── [shareId]/page.tsx  # Public share view
-│   │
+│   │       └── [shareId]/page.tsx
 │   ├── components/
-│   │   ├── ui/                 # Reusable UI primitives
-│   │   │   ├── Button.tsx
-│   │   │   ├── Input.tsx
-│   │   │   └── Modal.tsx
+│   │   ├── ui/
 │   │   ├── layouts/
-│   │   │   └── DashboardLayout.tsx
-│   │   ├── providers/
-│   │   │   └── AuthProvider.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── Header.tsx
 │   │   ├── FolderCard.tsx
 │   │   ├── FileCard.tsx
-│   │   └── Breadcrumb.tsx
-│   │
-│   ├── lib/
-│   │   └── api.ts              # Axios client + API functions
-│   │
+│   │   └── ...
 │   ├── stores/
-│   │   └── authStore.ts        # Zustand auth state
-│   │
-│   └── app/globals.css         # Design system
+│   │   └── authStore.ts
+│   └── lib/
+│       └── api.ts
+├── vercel.json
+└── package.json
 ```
-
----
-
-## Pages Overview
-
-### `/login`
-Simple email + password form. Redirects to dashboard on success.
-
-### `/register`
-Create account form with password confirmation.
-
-### `/dashboard`
-Shows folder count and recent folders. Entry point after login.
-
-### `/folders`
-Grid of all root-level folders. Create, rename, delete, share folders.
-
-### `/folders/[id]`
-View folder contents:
-- Subfolders
-- Files
-- Breadcrumb navigation
-- Upload files
-- Create nested folders
-
-### `/public/[shareId]`
-Read-only view for shared folders/files. No login required.
-
----
-
-## State Management
-
-Using **Zustand** for auth state:
-
-```typescript
-// stores/authStore.ts
-{
-  user: { id, email, role } | null,
-  token: string | null,
-  isLoading: boolean,
-  isAuthenticated: boolean,
-  
-  login(email, password),
-  register(email, password),
-  logout(),
-  checkAuth()
-}
-```
-
-Token is stored in cookies (`js-cookie`) and sent with every API request.
-
----
-
-## API Client
-
-Located in `lib/api.ts`:
-
-```typescript
-// Axios instance with token interceptor
-const api = axios.create({ baseURL: 'http://localhost:5000' });
-
-// Exported API functions
-authAPI.login(email, password)
-authAPI.register(email, password)
-authAPI.getMe()
-
-foldersAPI.getAll()
-foldersAPI.getById(id)
-foldersAPI.create(name, parentId?)
-foldersAPI.rename(id, name)
-foldersAPI.delete(id)
-foldersAPI.share(id)
-foldersAPI.unshare(id)
-
-filesAPI.upload(folderId, file)
-filesAPI.rename(id, name)
-filesAPI.delete(id)
-filesAPI.share(id)
-filesAPI.unshare(id)
-
-publicAPI.getShared(shareId)
-```
-
----
-
-## Components
-
-### `FolderCard`
-Displays folder with:
-- Folder icon with "Shared" badge
-- Name and date
-- Three-dot menu (rename, share, delete)
-- Delete confirmation modal
-
-### `FileCard`
-Similar to FolderCard but for files:
-- File type icon (emoji based on mime type)
-- Size and date
-- Download, rename, share, delete actions
-
-### `Modal`
-Reusable modal with:
-- Header with title and close button
-- Body slot for content
-- Closes on Escape key or overlay click
-
-### `Breadcrumb`
-Shows path like: `Root > Projects > Design`
-Each segment is clickable to navigate.
-
----
-
-## Styling Approach
-
-Pure CSS in `globals.css` with:
-
-- **4pt spacing grid** (`--space-1` through `--space-12`)
-- **Single accent color** (`#2563eb` blue)
-- **Small border radii** (3-6px)
-- **System font stack** (no custom fonts)
-- **Dark mode support** via `prefers-color-scheme`
-
-No Tailwind utility classes in components—all styling via CSS classes.
-
----
-
-## Auth Flow
-
-1. App loads → `AuthProvider` calls `checkAuth()`
-2. If token exists, verify with `/api/auth/me`
-3. If valid, set user in store
-4. If invalid or missing, redirect to `/login`
-5. Protected routes check `isAuthenticated`
-
----
-
-## Key Features
-
-✅ Login/Register with JWT  
-✅ Create nested folder structure  
-✅ Upload files to folders  
-✅ Rename folders and files  
-✅ Delete with confirmation modal  
-✅ Generate shareable public links  
-✅ Revoke share links  
-✅ Breadcrumb navigation  
-✅ Responsive layout  
-
----
-
-## What I'd Improve With More Time
-
-- Drag-and-drop file upload
-- Drag files between folders
-- Search functionality
-- File preview (images, PDFs)
-- Keyboard shortcuts
-- Toast notifications instead of alerts
-- Loading skeletons
-- Optimistic UI updates
-- Write component tests
-
----
-
-## Environment Variables
-
-For production, set in `.env.local`:
-
-```
-NEXT_PUBLIC_API_URL=https://your-api-domain.com
-```
-
-If not set, defaults to `http://localhost:5000`.
-
----
 
 ## Dependencies
 
 - `next` - React framework
 - `react` - UI library
 - `typescript` - Type safety
-- `axios` - HTTP client
 - `zustand` - State management
+- `axios` - HTTP client
 - `js-cookie` - Cookie handling
 - `react-icons` - Icon library
-- `tailwindcss` - Utility CSS (mostly for base reset)
