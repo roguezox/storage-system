@@ -1,10 +1,13 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const Folder = require('../models/Folder');
 const File = require('../models/File');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
+
+// Generate UUID using built-in crypto
+const generateUUID = () => crypto.randomUUID();
 
 // All routes require authentication
 router.use(auth);
@@ -59,20 +62,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Get sub-folders only
-router.get('/:id/subfolders', async (req, res) => {
-    try {
-        const subfolders = await Folder.find({
-            parentId: req.params.id,
-            ownerId: req.userId
-        }).sort({ createdAt: -1 });
-
-        res.json(subfolders);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // Create folder
 router.post('/', async (req, res) => {
     try {
@@ -88,7 +77,6 @@ router.post('/', async (req, res) => {
         if (parentId && parentId !== 'null' && parentId !== 'undefined') {
             const mongoose = require('mongoose');
 
-            // Validate parentId is a valid ObjectId
             if (!mongoose.Types.ObjectId.isValid(parentId)) {
                 return res.status(400).json({ error: 'Invalid parent folder ID' });
             }
@@ -158,7 +146,6 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Folder not found' });
         }
 
-        // Recursively delete all subfolders and files
         await deleteFolderRecursive(folder._id, req.userId);
 
         res.json({ message: 'Folder deleted successfully' });
@@ -170,7 +157,7 @@ router.delete('/:id', async (req, res) => {
 // Generate share link
 router.post('/:id/share', async (req, res) => {
     try {
-        const shareId = uuidv4();
+        const shareId = generateUUID();
 
         const folder = await Folder.findOneAndUpdate(
             { _id: req.params.id, ownerId: req.userId },
@@ -211,42 +198,32 @@ router.delete('/:id/share', async (req, res) => {
     }
 });
 
-// Helper function to delete folder and all its contents recursively
-async function deleteFolderRecursive(folderId, ownerId) {
-    // Delete all files in this folder
-    await File.deleteMany({ folderId, ownerId });
-
-    // Find all subfolders
-    const subfolders = await Folder.find({ parentId: folderId, ownerId });
-
-    // Recursively delete each subfolder
-    for (const subfolder of subfolders) {
-        await deleteFolderRecursive(subfolder._id, ownerId);
-    }
-
-    // Delete the folder itself
-    await Folder.deleteOne({ _id: folderId, ownerId });
-}
-
-// Helper function to get breadcrumb path
-async function getBreadcrumb(folderId, ownerId) {
+// Helper: Get breadcrumb path
+async function getBreadcrumb(folderId, userId) {
     const breadcrumb = [];
-    let currentFolder = await Folder.findOne({ _id: folderId, ownerId });
+    let currentId = folderId;
 
-    while (currentFolder) {
-        breadcrumb.unshift({
-            id: currentFolder._id,
-            name: currentFolder.name
-        });
+    while (currentId) {
+        const folder = await Folder.findOne({ _id: currentId, ownerId: userId });
+        if (!folder) break;
 
-        if (currentFolder.parentId) {
-            currentFolder = await Folder.findOne({ _id: currentFolder.parentId, ownerId });
-        } else {
-            currentFolder = null;
-        }
+        breadcrumb.unshift({ id: folder._id, name: folder.name });
+        currentId = folder.parentId;
     }
 
     return breadcrumb;
+}
+
+// Helper: Recursively delete folder and contents
+async function deleteFolderRecursive(folderId, userId) {
+    const subfolders = await Folder.find({ parentId: folderId, ownerId: userId });
+
+    for (const subfolder of subfolders) {
+        await deleteFolderRecursive(subfolder._id, userId);
+    }
+
+    await File.deleteMany({ folderId, ownerId: userId });
+    await Folder.deleteOne({ _id: folderId, ownerId: userId });
 }
 
 module.exports = router;
