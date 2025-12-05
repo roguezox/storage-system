@@ -92,7 +92,7 @@ Runs on `http://localhost:3000`
 ### Backend `.env`
 
 ```
-MONGO_URI=mongodb+srv://...your-connection-string
+MONGODB_URI=mongodb+srv://...your-connection-string
 JWT_SECRET=any-secret-key
 PORT=5000
 ```

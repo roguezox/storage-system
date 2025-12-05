@@ -44,7 +44,7 @@ backend/
 Create a `.env` file:
 
 ```
-MONGO_URI=your_mongodb_connection_string
+MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=any_secret_key_you_want
 PORT=5000
 ```
