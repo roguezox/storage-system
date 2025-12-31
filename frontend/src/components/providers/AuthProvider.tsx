@@ -20,15 +20,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     useEffect(() => {
         if (isLoading) return;
 
-        const publicPaths = ['/login', '/register', '/public'];
-        const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+        const publicPaths = ['/app/login', '/app/register', '/app/public'];
+        const isPublicPath = pathname === '/' || publicPaths.some(path => pathname.startsWith(path));
 
         if (!isAuthenticated && !isPublicPath) {
-            router.push('/login');
+            router.push('/app/login');
         }
 
-        if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
-            router.push('/dashboard');
+        if (isAuthenticated && (pathname === '/app/login' || pathname === '/app/register')) {
+            router.push('/app/dashboard');
         }
     }, [isLoading, isAuthenticated, pathname, router]);
 

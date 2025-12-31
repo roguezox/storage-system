@@ -18,10 +18,15 @@ const fileSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    // Store file data as base64 string
-    data: {
+    // Storage key - reference to file in storage backend
+    storageKey: {
         type: String,
         required: true
+    },
+    // Which storage provider holds this file
+    storageProvider: {
+        type: String,
+        default: 'local'
     },
     mimeType: {
         type: String
@@ -45,3 +50,4 @@ const fileSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('File', fileSchema);
+

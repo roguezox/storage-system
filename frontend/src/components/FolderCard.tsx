@@ -25,7 +25,7 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const handleOpen = () => {
-        router.push(`/folders/${id}`);
+        router.push(`/app/folders/${id}`);
     };
 
     const handleRename = async () => {
@@ -46,7 +46,6 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Delete clicked, opening modal');
         setShowMenu(false);
         setShowDeleteModal(true);
     };
@@ -70,7 +69,7 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
                 await foldersAPI.unshare(id);
             } else {
                 const response = await foldersAPI.share(id);
-                const shareUrl = `${window.location.origin}/public/${response.data.shareId}`;
+                const shareUrl = `${window.location.origin}/app/public/${response.data.shareId}`;
                 await navigator.clipboard.writeText(shareUrl);
                 alert(`Share link copied to clipboard:\n${shareUrl}`);
             }
@@ -83,7 +82,7 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
 
     const copyShareLink = async () => {
         if (shareId) {
-            const shareUrl = `${window.location.origin}/public/${shareId}`;
+            const shareUrl = `${window.location.origin}/app/public/${shareId}`;
             await navigator.clipboard.writeText(shareUrl);
             alert('Share link copied to clipboard!');
         }
@@ -92,9 +91,9 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
     return (
         <>
             <div className={`folder-card ${isDeleting ? 'opacity-50' : ''}`}>
-                <div className="folder-card-content" onClick={handleOpen}>
+                <div className="folder-card-content" onClick={handleOpen} style={{ flex: 1 }}>
                     <div className="folder-icon">
-                        <FiFolder size={40} />
+                        <FiFolder size={24} />
                         {isShared && <span className="shared-badge">Shared</span>}
                     </div>
 
@@ -106,7 +105,8 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
                             onBlur={handleRename}
                             onKeyDown={e => e.key === 'Enter' && handleRename()}
                             onClick={e => e.stopPropagation()}
-                            className="folder-rename-input"
+                            className="input"
+                            style={{ height: '24px', padding: '0 4px', fontSize: '13px' }}
                             autoFocus
                         />
                     ) : (
@@ -123,24 +123,25 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
                         className="folder-menu-btn"
                         onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
                     >
-                        <FiMoreVertical size={18} />
+                        <FiMoreVertical size={16} />
                     </button>
 
                     {showMenu && (
                         <div className="folder-menu" onClick={e => e.stopPropagation()}>
                             <button onClick={() => { setIsRenaming(true); setShowMenu(false); }}>
-                                <FiEdit2 size={16} /> Rename
+                                <FiEdit2 size={14} /> Rename
                             </button>
                             <button onClick={handleShare}>
-                                <FiShare2 size={16} /> {isShared ? 'Unshare' : 'Share'}
+                                <FiShare2 size={14} /> {isShared ? 'Unshare' : 'Share'}
                             </button>
                             {isShared && (
                                 <button onClick={copyShareLink}>
-                                    <FiLink size={16} /> Copy Link
+                                    <FiLink size={14} /> Copy Link
                                 </button>
                             )}
+                            <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }}></div>
                             <button onClick={(e) => handleDeleteClick(e)} className="danger">
-                                <FiTrash2 size={16} /> Delete
+                                <FiTrash2 size={14} /> Delete
                             </button>
                         </div>
                     )}
@@ -153,12 +154,12 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
                 onClose={() => setShowDeleteModal(false)}
                 title="Delete Folder"
             >
-                <div style={{ marginBottom: 20 }}>
-                    <p style={{ color: 'var(--foreground-secondary)', marginBottom: 8 }}>
-                        Are you sure you want to delete <strong>&quot;{name}&quot;</strong>?
+                <div style={{ marginBottom: 24 }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
+                        Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>?
                     </p>
-                    <p style={{ color: 'var(--danger)', fontSize: 14 }}>
-                        ⚠️ This will permanently delete the folder and all its contents.
+                    <p style={{ color: 'var(--danger)', fontSize: 13, background: 'var(--danger-subtle)', padding: '8px 12px', borderRadius: '6px' }}>
+                        This will permanently delete the folder and all its contents.
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>

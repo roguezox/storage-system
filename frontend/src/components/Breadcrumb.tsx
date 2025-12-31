@@ -15,7 +15,7 @@ interface BreadcrumbProps {
 export function Breadcrumb({ items }: BreadcrumbProps) {
     return (
         <nav className="breadcrumb">
-            <Link href="/folders" className="breadcrumb-item">
+            <Link href="/app/folders" className="breadcrumb-item">
                 <FiHome size={16} />
                 <span>Root</span>
             </Link>
@@ -26,7 +26,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
                     {index === items.length - 1 ? (
                         <span className="breadcrumb-item current">{item.name}</span>
                     ) : (
-                        <Link href={`/folders/${item.id}`} className="breadcrumb-item">
+                        <Link href={`/app/folders/${item.id}`} className="breadcrumb-item">
                             {item.name}
                         </Link>
                     )}

@@ -1,0 +1,98 @@
+version: '3.8'
+
+# ============================================
+# OpenDrive - Docker Hub Deployment
+# ============================================
+# This file uses pre-built images from Docker Hub
+# Deploy with: docker-compose -f docker-compose.hub.yml up -d
+# ============================================
+
+services:
+  # -------------------------------------------
+  # MongoDB Database
+  # -------------------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: opendrive-db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
+      MONGO_INITDB_DATABASE: drive
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -------------------------------------------
+  # Backend API Server (from Docker Hub)
+  # -------------------------------------------
+  backend:
+    image: ${DOCKERHUB_USERNAME}/opendrive-backend:${TAG:-latest}
+    container_name: opendrive-api
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-changeme}@mongodb:27017/drive?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-secure-random-string}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      STORAGE_PATH: /app/uploads
+      # S3/MinIO settings (if STORAGE_PROVIDER=s3)
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-drive}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # -------------------------------------------
+  # Frontend Web Application (from Docker Hub)
+  # -------------------------------------------
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/opendrive-frontend:${TAG:-latest}
+    container_name: opendrive-web
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Note: NEXT_PUBLIC_ vars are baked at build time for Next.js
+      # For different API URLs, you need to rebuild the image with:
+      # --build-arg NEXT_PUBLIC_API_URL=https://your-api.com
+      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:5000}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# -------------------------------------------
+# Persistent Volumes
+# -------------------------------------------
+volumes:
+  mongodb_data:
+    driver: local
+  uploads_data:
+    driver: local

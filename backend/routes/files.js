@@ -3,17 +3,17 @@ const crypto = require('crypto');
 const multer = require('multer');
 const File = require('../models/File');
 const auth = require('../middleware/auth');
+const { getStorage } = require('../storage');
 
 const router = express.Router();
 
-// Generate UUID using built-in crypto
 const generateUUID = () => crypto.randomUUID();
 
-// Configure multer for memory storage (not disk)
+// Configure multer for memory storage
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 16 * 1024 * 1024 // 16MB limit (MongoDB document limit is 16MB)
+        fileSize: 100 * 1024 * 1024 // 100MB limit (configurable via env)
     }
 });
 
@@ -23,11 +23,10 @@ router.use(auth);
 // Get files by folder
 router.get('/folder/:folderId', async (req, res) => {
     try {
-        // Don't return the file data in list view (too heavy)
         const files = await File.find({
             folderId: req.params.folderId,
             ownerId: req.userId
-        }).select('-data').sort({ createdAt: -1 });
+        }).sort({ createdAt: -1 });
 
         res.json(files);
     } catch (error) {
@@ -35,7 +34,7 @@ router.get('/folder/:folderId', async (req, res) => {
     }
 });
 
-// Upload file - store in MongoDB
+// Upload file - store using storage provider
 router.post('/', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
@@ -48,25 +47,31 @@ router.post('/', upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: 'Folder ID is required' });
         }
 
-        // Convert file buffer to base64
-        const base64Data = req.file.buffer.toString('base64');
+        const storage = getStorage();
+
+        // Upload to storage provider
+        const { storageKey, size } = await storage.upload(
+            req.file.originalname,
+            req.file.buffer,
+            req.file.mimetype,
+            req.userId.toString()
+        );
 
         const file = new File({
             name: `${generateUUID()}-${req.file.originalname}`,
             originalName: req.file.originalname,
             folderId,
             ownerId: req.userId,
-            data: base64Data,
+            storageKey,
+            storageProvider: storage.getType(),
             mimeType: req.file.mimetype,
-            size: req.file.size
+            size
         });
 
         await file.save();
-
-        // Return file without data field
-        const { data, ...fileWithoutData } = file.toObject();
-        res.status(201).json(fileWithoutData);
+        res.status(201).json(file);
     } catch (error) {
+        console.error('Upload error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -83,8 +88,8 @@ router.get('/:id/download', async (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
-        // Convert base64 back to buffer
-        const buffer = Buffer.from(file.data, 'base64');
+        const storage = getStorage();
+        const buffer = await storage.download(file.storageKey);
 
         res.set({
             'Content-Type': file.mimeType,
@@ -94,6 +99,7 @@ router.get('/:id/download', async (req, res) => {
 
         res.send(buffer);
     } catch (error) {
+        console.error('Download error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -111,7 +117,7 @@ router.put('/:id', async (req, res) => {
             { _id: req.params.id, ownerId: req.userId },
             { originalName: name },
             { new: true }
-        ).select('-data');
+        );
 
         if (!file) {
             return res.status(404).json({ error: 'File not found' });
@@ -126,7 +132,7 @@ router.put('/:id', async (req, res) => {
 // Delete file
 router.delete('/:id', async (req, res) => {
     try {
-        const file = await File.findOneAndDelete({
+        const file = await File.findOne({
             _id: req.params.id,
             ownerId: req.userId
         });
@@ -135,8 +141,16 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
+        // Delete from storage
+        const storage = getStorage();
+        await storage.delete(file.storageKey);
+
+        // Delete from database
+        await File.deleteOne({ _id: file._id });
+
         res.json({ message: 'File deleted successfully' });
     } catch (error) {
+        console.error('Delete error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -150,7 +164,7 @@ router.post('/:id/share', async (req, res) => {
             { _id: req.params.id, ownerId: req.userId },
             { isShared: true, shareId },
             { new: true }
-        ).select('-data');
+        );
 
         if (!file) {
             return res.status(404).json({ error: 'File not found' });
@@ -173,7 +187,7 @@ router.delete('/:id/share', async (req, res) => {
             { _id: req.params.id, ownerId: req.userId },
             { isShared: false, shareId: null },
             { new: true }
-        ).select('-data');
+        );
 
         if (!file) {
             return res.status(404).json({ error: 'File not found' });

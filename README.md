@@ -1,117 +1,118 @@
-# Storage Platform
+# OpenDrive - Self-Hosted Cloud Storage
 
-A full-stack cloud storage application with folder management, file uploads, and sharing capabilities.
+[![Build and Push Docker Images](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/docker-publish.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/YOUR_DOCKERHUB_USERNAME/opendrive-frontend)](https://hub.docker.com/r/YOUR_DOCKERHUB_USERNAME/opendrive-frontend)
 
-## 🚀 Live Demo
-
-- **Frontend:** https://storage-system-sooty.vercel.app/
-- **Backend:** https://storage-system-uysk.vercel.app/
-
-## 📋 Features
-
-- **User Authentication** - Register, login, JWT-based sessions
-- **Folder Management** - Create, rename, delete, nested folders
-- **File Management** - Upload, download, rename, delete files
-- **Sharing** - Generate public links for folders/files
-- **Public Access** - Navigate shared folders, download files
-- **Responsive Design** - Works on desktop and mobile
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 16, TypeScript, Zustand |
-| Backend | Express.js 5, Node.js |
-| Database | MongoDB Atlas |
-| File Storage | MongoDB (base64) |
-| Deployment | Vercel |
-
-## 📁 Project Structure
-
-```
-drive/
-├── backend/           # Express.js API
-│   ├── models/        # Mongoose schemas
-│   ├── routes/        # API routes
-│   ├── middleware/    # Auth middleware
-│   └── app.js         # Entry point
-├── frontend/          # Next.js app
-│   └── src/
-│       ├── app/       # Pages (App Router)
-│       ├── components/# React components
-│       ├── stores/    # Zustand stores
-│       └── lib/       # API client
-└── README.md
-```
-
-## 🏃 Quick Start
-
-### Prerequisites
-- Node.js 18+
-- MongoDB Atlas account
-
-### Backend Setup
+## 🚀 Quick Start with Docker Hub
 
 ```bash
-cd drive/backend
-npm install
+# 1. Create environment file
+curl -o .env https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/.env.example
 
-# Create .env file
-echo "MONGODB_URI=your_mongodb_uri" > .env
-echo "JWT_SECRET=your_secret" >> .env
-echo "PORT=5000" >> .env
+# 2. Edit .env with your settings
+# Required: DOCKERHUB_USERNAME, JWT_SECRET, MONGO_PASSWORD
 
-npm run dev
+# 3. Download and run
+curl -o docker-compose.hub.yml https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/docker-compose.hub.yml
+docker-compose -f docker-compose.hub.yml up -d
 ```
 
-### Frontend Setup
+---
 
-```bash
-cd drive/frontend
-npm install
+A modern, self-hosted cloud storage platform that gives you complete control over your data. "Bring Your Own Storage" design lets you store files on local disk, S3, MinIO, or any compatible provider.
 
-# Create .env.local file
-echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
+![Docker](https://img.shields.io/badge/docker-ready-green.svg)
 
-npm run dev
+## 🚀 Key Features
+
+*   **100% Data Sovereignty**: Files exist on your server, not in a black box.
+*   **Pluggable Storage**: Use local disk, AWS S3, MinIO, DigitalOcean Spaces, etc.
+*   **Zero Limits**: No artificial storage caps or file size limits.
+*   **Modern UI**: Built with Next.js 14 and TailwindCSS for a premium experience.
+*   **Secure Sharing**: Generate public links with optional expiration (Pro).
+
+---
+
+## 🛠 Deployment
+
+The easiest way to run OpenDrive is with Docker Compose.
+
+### Quick Start (Production)
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/opendrive.git
+    cd opendrive
+    ```
+
+2.  **Configure Environment**
+    ```bash
+    cp .env.example .env
+    # Edit .env with your secrets and settings
+    nano .env
+    ```
+
+3.  **Start Services**
+    ```bash
+    docker-compose up -d
+    ```
+
+4.  **Access**
+    Open [http://localhost:3000](http://localhost:3000) to create your admin account.
+
+### Storage Configuration
+
+OpenDrive supports multiple storage backends. Configure via `.env` file:
+
+**Option 1: Local Disk (Default)**
+Simple, fast, and great for single-server setups.
+```ini
+STORAGE_PROVIDER=local
+STORAGE_PATH=./uploads
 ```
 
-## 🔌 API Summary
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/auth/register` | Create account |
-| `POST /api/auth/login` | Get JWT token |
-| `GET /api/folders` | List root folders |
-| `GET /api/folders/:id` | Get folder contents |
-| `POST /api/folders` | Create folder |
-| `POST /api/files` | Upload file |
-| `GET /api/files/:id/download` | Download file |
-| `POST /api/folders/:id/share` | Share folder |
-| `GET /api/public/:shareId` | Access shared content |
-
-## 🔒 Environment Variables
-
-### Backend
-```
-MONGODB_URI=mongodb+srv://...
-JWT_SECRET=your-secret-key
-PORT=5000
+**Option 2: S3 / MinIO**
+Scalable object storage. Works with AWS, MinIO, Backblaze B2, Google Cloud Storage, etc.
+```ini
+STORAGE_PROVIDER=s3
+S3_ENDPOINT=http://minio:9000  # Leave empty for AWS S3
+S3_BUCKET=my-drive-bucket
+S3_REGION=us-east-1
+S3_ACCESS_KEY=your_key
+S3_SECRET_KEY=your_secret
 ```
 
-### Frontend
-```
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
+---
 
-## 📝 What I'd Add With More Time
+## 💻 Tech Stack
 
-- [ ] Drag-and-drop file uploads
-- [ ] File preview (images, PDFs)
-- [ ] Search functionality
-- [ ] Bulk operations (multi-select delete)
-- [ ] Storage quota management
-- [ ] File versioning
-- [ ] Collaborative features
-- [ ] External storage (S3/Cloudinary) for larger files
+*   **Frontend**: Next.js 14, React, TailwindCSS, Zustand
+*   **Backend**: Node.js, Express, Mongoose
+*   **Database**: MongoDB
+*   **Storage**: Abstracted provider system (LocalFS / S3)
 
+---
+
+## 📜 License
+
+### Open Source Edition
+OpenDrive is free software licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+You are free to use, modify, and distribute it, provided you share your improvements with the community.
+
+See [LICENSE](LICENSE) for details.
+
+### Enterprise Edition
+Need more? Our Enterprise plan offers:
+*   Multi-user management & RBAC
+*   SSO / SAML Integration
+*   Audit Logs & Compliance Tools
+*   Priority Support
+
+See [ENTERPRISE-LICENSE.md](ENTERPRISE-LICENSE.md) for commercial terms.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting a pull request.

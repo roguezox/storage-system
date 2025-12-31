@@ -32,7 +32,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             Cookies.remove('token');
             if (typeof window !== 'undefined') {
-                window.location.href = '/login';
+                window.location.href = '/app/login';
             }
         }
         return Promise.reject(error);
@@ -55,6 +55,7 @@ export const foldersAPI = {
     getAll: () => api.get('/api/folders'),
     getById: (id: string) => api.get(`/api/folders/${id}`),
     getSubfolders: (id: string) => api.get(`/api/folders/${id}/subfolders`),
+    getStats: () => api.get('/api/folders/stats/summary'),
     create: (name: string, parentId?: string) =>
         api.post('/api/folders', { name, parentId }),
     rename: (id: string, name: string) =>

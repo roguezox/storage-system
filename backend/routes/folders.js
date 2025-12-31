@@ -12,6 +12,34 @@ const generateUUID = () => crypto.randomUUID();
 // All routes require authentication
 router.use(auth);
 
+// Get user stats (folders count, storage used)
+router.get('/stats/summary', async (req, res) => {
+    try {
+        const mongoose = require('mongoose');
+        const userObjectId = new mongoose.Types.ObjectId(req.userId);
+
+        // Count total folders
+        const totalFolders = await Folder.countDocuments({ ownerId: req.userId });
+
+        // Calculate total storage used (sum of all file sizes)
+        const storageResult = await File.aggregate([
+            { $match: { ownerId: userObjectId } },
+            { $group: { _id: null, totalSize: { $sum: '$size' } } }
+        ]);
+
+        const totalFiles = await File.countDocuments({ ownerId: req.userId });
+        const storageUsed = storageResult.length > 0 ? storageResult[0].totalSize : 0;
+
+        res.json({
+            totalFolders,
+            totalFiles,
+            storageUsed
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get all root folders
 router.get('/', async (req, res) => {
     try {

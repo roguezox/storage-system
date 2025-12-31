@@ -34,7 +34,7 @@ export default function RegisterPage() {
 
         try {
             await register(email, password);
-            router.push('/dashboard');
+            router.push('/app/dashboard');
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'An error occurred';
             const axiosError = err as { response?: { data?: { error?: string } } };
@@ -89,7 +89,7 @@ export default function RegisterPage() {
 
                 <div className="auth-footer">
                     Already have an account?{' '}
-                    <Link href="/login">Sign in</Link>
+                    <Link href="/app/login">Sign in</Link>
                 </div>
             </div>
         </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const Folder = require('../models/Folder');
 const File = require('../models/File');
+const { getStorage } = require('../storage');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/:shareId', async (req, res) => {
 
             const files = await File.find({
                 folderId: folder._id
-            }).select('-data');
+            });
 
             return res.json({
                 type: 'folder',
@@ -39,7 +40,7 @@ router.get('/:shareId', async (req, res) => {
         const file = await File.findOne({
             shareId: req.params.shareId,
             isShared: true
-        }).select('-data');
+        });
 
         if (file) {
             return res.json({
@@ -93,7 +94,7 @@ router.get('/:shareId/folder/:folderId', async (req, res) => {
 
         const files = await File.find({
             folderId: folder._id
-        }).select('-data');
+        });
 
         // Build breadcrumb from this folder up to the shared root
         const breadcrumb = await getBreadcrumbToRoot(folder._id, rootFolder._id);
@@ -143,8 +144,9 @@ router.get('/:shareId/file/:fileId/download', async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        // Convert base64 back to buffer
-        const buffer = Buffer.from(file.data, 'base64');
+        // Download from storage provider
+        const storage = getStorage();
+        const buffer = await storage.download(file.storageKey);
 
         res.set({
             'Content-Type': file.mimeType,
@@ -154,6 +156,7 @@ router.get('/:shareId/file/:fileId/download', async (req, res) => {
 
         res.send(buffer);
     } catch (error) {
+        console.error('Public download error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -170,8 +173,9 @@ router.get('/:shareId/download', async (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
-        // Convert base64 back to buffer
-        const buffer = Buffer.from(file.data, 'base64');
+        // Download from storage provider
+        const storage = getStorage();
+        const buffer = await storage.download(file.storageKey);
 
         res.set({
             'Content-Type': file.mimeType,
@@ -181,6 +185,7 @@ router.get('/:shareId/download', async (req, res) => {
 
         res.send(buffer);
     } catch (error) {
+        console.error('Public download error:', error);
         res.status(500).json({ error: error.message });
     }
 });

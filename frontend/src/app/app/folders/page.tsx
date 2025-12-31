@@ -70,7 +70,7 @@ export default function FoldersPage() {
             <div className="page-header">
                 <h1 className="page-title">All Folders</h1>
                 <Button onClick={() => setShowCreateModal(true)}>
-                    <FiPlus size={18} />
+                    <FiPlus size={16} />
                     New Folder
                 </Button>
             </div>
@@ -94,8 +94,8 @@ export default function FoldersPage() {
                     <div className="empty-state-icon">📁</div>
                     <h3>No folders yet</h3>
                     <p>Create your first folder to start organizing your files</p>
-                    <Button onClick={() => setShowCreateModal(true)} style={{ marginTop: 16 }}>
-                        <FiPlus size={18} />
+                    <Button onClick={() => setShowCreateModal(true)}>
+                        <FiPlus size={16} />
                         Create Folder
                     </Button>
                 </div>

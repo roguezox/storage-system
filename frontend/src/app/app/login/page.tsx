@@ -22,7 +22,7 @@ export default function LoginPage() {
 
         try {
             await login(email, password);
-            router.push('/dashboard');
+            router.push('/app/dashboard');
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'An error occurred';
             const axiosError = err as { response?: { data?: { error?: string } } };
@@ -68,7 +68,7 @@ export default function LoginPage() {
 
                 <div className="auth-footer">
                     Don&apos;t have an account?{' '}
-                    <Link href="/register">Create one</Link>
+                    <Link href="/app/register">Create one</Link>
                 </div>
             </div>
         </div>

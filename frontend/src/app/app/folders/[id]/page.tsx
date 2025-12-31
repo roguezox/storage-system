@@ -122,13 +122,13 @@ export default function FolderDetailPage() {
 
             <div className="page-header">
                 <h1 className="page-title">{currentFolder?.name}</h1>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="flex gap-3">
                     <Button onClick={() => setShowCreateFolderModal(true)} variant="secondary">
-                        <FiPlus size={18} />
+                        <FiPlus size={16} />
                         New Folder
                     </Button>
                     <Button onClick={() => fileInputRef.current?.click()} isLoading={isUploading}>
-                        <FiUpload size={18} />
+                        <FiUpload size={16} />
                         Upload File
                     </Button>
                     <input
@@ -190,6 +190,16 @@ export default function FolderDetailPage() {
                     <div className="empty-state-icon">📂</div>
                     <h3>This folder is empty</h3>
                     <p>Add folders or upload files to get started</p>
+                    <div className="flex gap-3">
+                        <Button onClick={() => setShowCreateFolderModal(true)} variant="secondary">
+                            <FiPlus size={16} />
+                            New Folder
+                        </Button>
+                        <Button onClick={() => fileInputRef.current?.click()}>
+                            <FiUpload size={16} />
+                            Upload File
+                        </Button>
+                    </div>
                 </div>
             )}
 
@@ -200,14 +210,16 @@ export default function FolderDetailPage() {
                 title="Create New Folder"
             >
                 <form onSubmit={e => { e.preventDefault(); handleCreateFolder(); }}>
-                    <Input
-                        label="Folder Name"
-                        value={newFolderName}
-                        onChange={e => setNewFolderName(e.target.value)}
-                        placeholder="Enter folder name"
-                        autoFocus
-                    />
-                    <div style={{ display: 'flex', gap: 12, marginTop: 20, justifyContent: 'flex-end' }}>
+                    <div style={{ marginBottom: 20 }}>
+                        <Input
+                            label="Folder Name"
+                            value={newFolderName}
+                            onChange={e => setNewFolderName(e.target.value)}
+                            placeholder="Enter folder name"
+                            autoFocus
+                        />
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                         <Button type="button" variant="secondary" onClick={() => setShowCreateFolderModal(false)}>
                             Cancel
                         </Button>

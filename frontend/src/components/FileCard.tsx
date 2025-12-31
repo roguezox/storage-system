@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FiFile, FiMoreVertical, FiEdit2, FiTrash2, FiShare2, FiLink, FiDownload } from 'react-icons/fi';
+import { FiMoreVertical, FiEdit2, FiTrash2, FiShare2, FiLink, FiDownload, FiFileText, FiImage, FiFilm, FiMusic } from 'react-icons/fi';
 import { filesAPI } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -34,13 +34,13 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
     };
 
     const getFileIcon = () => {
-        if (mimeType.startsWith('image/')) return '🖼️';
-        if (mimeType.startsWith('video/')) return '🎬';
-        if (mimeType.startsWith('audio/')) return '🎵';
-        if (mimeType.includes('pdf')) return '📄';
-        if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '📊';
-        if (mimeType.includes('document') || mimeType.includes('word')) return '📝';
-        return '📁';
+        const size = 24;
+        const color = 'var(--text-secondary)';
+
+        if (mimeType.startsWith('image/')) return <FiImage size={size} color={color} />;
+        if (mimeType.startsWith('video/')) return <FiFilm size={size} color={color} />;
+        if (mimeType.startsWith('audio/')) return <FiMusic size={size} color={color} />;
+        return <FiFileText size={size} color={color} />;
     };
 
     const handleRename = async () => {
@@ -84,7 +84,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                 await filesAPI.unshare(id);
             } else {
                 const response = await filesAPI.share(id);
-                const shareUrl = `${window.location.origin}/public/${response.data.shareId}`;
+                const shareUrl = `${window.location.origin}/app/public/${response.data.shareId}`;
                 await navigator.clipboard.writeText(shareUrl);
                 alert(`Share link copied to clipboard:\n${shareUrl}`);
             }
@@ -97,7 +97,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
 
     const copyShareLink = async () => {
         if (shareId) {
-            const shareUrl = `${window.location.origin}/public/${shareId}`;
+            const shareUrl = `${window.location.origin}/app/public/${shareId}`;
             await navigator.clipboard.writeText(shareUrl);
             alert('Share link copied to clipboard!');
         }
@@ -133,14 +133,12 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
         }
     };
 
-    const displayName = originalName || name;
-
     return (
         <>
             <div className={`file-card ${isDeleting ? 'opacity-50' : ''}`}>
-                <div className="file-card-content" onClick={handleDownload}>
+                <div className="file-card-content" onClick={handleDownload} style={{ flex: 1 }}>
                     <div className="file-icon">
-                        <span className="file-emoji">{getFileIcon()}</span>
+                        {getFileIcon()}
                         {isShared && <span className="shared-badge">Shared</span>}
                     </div>
 
@@ -152,7 +150,8 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                             onBlur={handleRename}
                             onKeyDown={e => e.key === 'Enter' && handleRename()}
                             onClick={e => e.stopPropagation()}
-                            className="file-rename-input"
+                            className="input"
+                            style={{ height: '24px', padding: '0 4px', fontSize: '13px' }}
                             autoFocus
                         />
                     ) : (
@@ -169,27 +168,28 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                         className="file-menu-btn"
                         onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
                     >
-                        <FiMoreVertical size={18} />
+                        <FiMoreVertical size={16} />
                     </button>
 
                     {showMenu && (
                         <div className="file-menu" onClick={e => e.stopPropagation()}>
                             <button onClick={handleDownload}>
-                                <FiDownload size={16} /> Download
+                                <FiDownload size={14} /> Download
                             </button>
                             <button onClick={() => { setIsRenaming(true); setShowMenu(false); }}>
-                                <FiEdit2 size={16} /> Rename
+                                <FiEdit2 size={14} /> Rename
                             </button>
                             <button onClick={handleShare}>
-                                <FiShare2 size={16} /> {isShared ? 'Unshare' : 'Share'}
+                                <FiShare2 size={14} /> {isShared ? 'Unshare' : 'Share'}
                             </button>
                             {isShared && (
                                 <button onClick={copyShareLink}>
-                                    <FiLink size={16} /> Copy Link
+                                    <FiLink size={14} /> Copy Link
                                 </button>
                             )}
+                            <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }}></div>
                             <button onClick={(e) => handleDeleteClick(e)} className="danger">
-                                <FiTrash2 size={16} /> Delete
+                                <FiTrash2 size={14} /> Delete
                             </button>
                         </div>
                     )}
@@ -202,12 +202,12 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                 onClose={() => setShowDeleteModal(false)}
                 title="Delete File"
             >
-                <div style={{ marginBottom: 20 }}>
-                    <p style={{ color: 'var(--foreground-secondary)', marginBottom: 8 }}>
-                        Are you sure you want to delete <strong>&quot;{name}&quot;</strong>?
+                <div style={{ marginBottom: 24 }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
+                        Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>?
                     </p>
-                    <p style={{ color: 'var(--danger)', fontSize: 14 }}>
-                        ⚠️ This action cannot be undone.
+                    <p style={{ color: 'var(--danger)', fontSize: 13, background: 'var(--danger-subtle)', padding: '8px 12px', borderRadius: '6px' }}>
+                        This action cannot be undone.
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>

@@ -8,20 +8,43 @@ import Link from 'next/link';
 
 interface Stats {
     totalFolders: number;
+    totalFiles: number;
+    storageUsed: number;
     recentFolders: Array<{ _id: string; name: string; createdAt: string }>;
 }
 
+// Helper function to format bytes
+function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 export default function DashboardPage() {
-    const [stats, setStats] = useState<Stats>({ totalFolders: 0, recentFolders: [] });
+    const [stats, setStats] = useState<Stats>({
+        totalFolders: 0,
+        totalFiles: 0,
+        storageUsed: 0,
+        recentFolders: []
+    });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await foldersAPI.getAll();
+                // Fetch both stats and folders in parallel
+                const [statsResponse, foldersResponse] = await Promise.all([
+                    foldersAPI.getStats(),
+                    foldersAPI.getAll()
+                ]);
+
                 setStats({
-                    totalFolders: response.data.length,
-                    recentFolders: response.data.slice(0, 5),
+                    totalFolders: statsResponse.data.totalFolders,
+                    totalFiles: statsResponse.data.totalFiles,
+                    storageUsed: statsResponse.data.storageUsed,
+                    recentFolders: foldersResponse.data.slice(0, 5),
                 });
             } catch (error) {
                 console.error('Failed to fetch stats:', error);
@@ -52,7 +75,7 @@ export default function DashboardPage() {
             <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-label">
-                        <FiFolder size={16} style={{ display: 'inline', marginRight: 8 }} />
+                        <FiFolder size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
                         Total Folders
                     </div>
                     <div className="stat-value">{stats.totalFolders}</div>
@@ -60,10 +83,18 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-label">
-                        <FiHardDrive size={16} style={{ display: 'inline', marginRight: 8 }} />
+                        <FiFile size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
+                        Total Files
+                    </div>
+                    <div className="stat-value">{stats.totalFiles}</div>
+                </div>
+
+                <div className="stat-card">
+                    <div className="stat-label">
+                        <FiHardDrive size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
                         Storage Used
                     </div>
-                    <div className="stat-value">--</div>
+                    <div className="stat-value">{formatBytes(stats.storageUsed)}</div>
                 </div>
             </div>
 
@@ -74,12 +105,12 @@ export default function DashboardPage() {
                     {stats.recentFolders.map(folder => (
                         <Link
                             key={folder._id}
-                            href={`/folders/${folder._id}`}
+                            href={`/app/folders/${folder._id}`}
                             className="folder-card"
                             style={{ textDecoration: 'none' }}
                         >
                             <div className="folder-icon">
-                                <FiFolder size={40} />
+                                <FiFolder size={24} />
                             </div>
                             <h3 className="folder-name">{folder.name}</h3>
                             <p className="folder-date">
@@ -89,14 +120,12 @@ export default function DashboardPage() {
                     ))}
                 </div>
             ) : (
-                <div className="empty-state">
-                    <div className="empty-state-icon">📁</div>
-                    <h3>No folders yet</h3>
-                    <p>Create your first folder to get started</p>
-                    <Link href="/folders">
-                        <button className="btn btn-primary" style={{ marginTop: 16 }}>
-                            Go to Folders
-                        </button>
+                <div style={{ textAlign: 'center', padding: '64px', border: '1px dashed var(--border-default)', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '32px', marginBottom: '16px', opacity: 0.5 }}>📁</div>
+                    <h3 style={{ fontSize: '16px', color: 'var(--text-primary)', marginBottom: '8px' }}>No folders yet</h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>Create your first folder to get started</p>
+                    <Link href="/app/folders" className="btn btn-primary">
+                        Go to Folders
                     </Link>
                 </div>
             )}
