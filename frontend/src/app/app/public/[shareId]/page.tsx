@@ -88,12 +88,12 @@ export default function PublicSharePage() {
     };
 
     const handleDownloadFile = (fileId: string) => {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '') : '';
         window.open(`${baseUrl}/api/public/${shareId}/file/${fileId}/download`, '_blank');
     };
 
     const handleDownloadSharedFile = () => {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '') : '';
         window.open(`${baseUrl}/api/public/${shareId}/download`, '_blank');
     };
 

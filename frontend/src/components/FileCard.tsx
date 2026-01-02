@@ -125,7 +125,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
 
     const handleDownload = async () => {
         try {
-            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '') : '';
             const token = Cookies.get('token');
 
             const response = await fetch(`${baseUrl}/api/files/${id}/download`, {

@@ -1,8 +1,11 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-// Remove trailing slash to prevent double-slash URLs (e.g., //api/files)
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+// Use relative URLs if NEXT_PUBLIC_API_URL is not set (same-origin deployment)
+// Otherwise use the provided URL (remove trailing slash to prevent double-slash URLs)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
