@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FiMoreVertical, FiEdit2, FiTrash2, FiShare2, FiLink, FiDownload, FiFileText, FiImage, FiFilm, FiMusic } from 'react-icons/fi';
 import { filesAPI } from '@/lib/api';
+import { getApiUrl } from '@/lib/config';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import Cookies from 'js-cookie';
@@ -125,7 +126,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
 
     const handleDownload = async () => {
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '') : '';
+            const baseUrl = getApiUrl();
             const token = Cookies.get('token');
 
             const response = await fetch(`${baseUrl}/api/files/${id}/download`, {

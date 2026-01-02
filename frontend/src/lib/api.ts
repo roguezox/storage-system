@@ -1,22 +1,20 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { getApiUrl } from './config';
 
-// Use relative URLs if NEXT_PUBLIC_API_URL is not set (same-origin deployment)
-// Otherwise use the provided URL (remove trailing slash to prevent double-slash URLs)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
-    : '';
-
+// Create axios instance - baseURL is set dynamically on each request
 const api = axios.create({
-    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token AND dynamic base URL
 api.interceptors.request.use(
     (config) => {
+        // Set base URL dynamically (reads from runtime config)
+        config.baseURL = getApiUrl();
+
         const token = Cookies.get('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;

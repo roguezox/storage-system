@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { publicAPI } from '@/lib/api';
+import { getApiUrl } from '@/lib/config';
 import { FiFolder, FiFile, FiDownload, FiAlertCircle, FiChevronRight, FiArrowLeft } from 'react-icons/fi';
 
 interface SharedFolder {
@@ -88,12 +89,12 @@ export default function PublicSharePage() {
     };
 
     const handleDownloadFile = (fileId: string) => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '') : '';
+        const baseUrl = getApiUrl();
         window.open(`${baseUrl}/api/public/${shareId}/file/${fileId}/download`, '_blank');
     };
 
     const handleDownloadSharedFile = () => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '') : '';
+        const baseUrl = getApiUrl();
         window.open(`${baseUrl}/api/public/${shareId}/download`, '_blank');
     };
 

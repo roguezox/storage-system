@@ -1,56 +1,43 @@
-# Build stage
+# OpenDrive Frontend Container
+# Next.js with runtime API URL injection
+
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source files
 COPY . .
 
-# Build arguments for environment variables (set at build time)
-ARG NEXT_PUBLIC_API_URL=http://localhost:5000
-
-# Set environment variable for the build process
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Build WITHOUT NEXT_PUBLIC_API_URL - it will be injected at runtime
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Build the application
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine AS runner
+# Production image
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+# Install dos2unix for line ending fixes
+RUN apk add --no-cache dos2unix
 
-# Set environment
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Copy built application
-COPY --from=builder /app/public ./public
+# Copy standalone build
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
-# Set ownership
-RUN chown -R nextjs:nodejs /app
+# Copy startup script
+COPY docker-start.sh /app/docker-start.sh
+RUN dos2unix /app/docker-start.sh && chmod +x /app/docker-start.sh
 
-# Switch to non-root user
-USER nextjs
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# Expose port
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
+    CMD wget -q --spider http://localhost:3000 || exit 1
 
-# Start the application
-CMD ["node", "server.js"]
+CMD ["/app/docker-start.sh"]

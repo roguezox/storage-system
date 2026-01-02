@@ -14,6 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Runtime config - API URL injected at container startup */}
+        <script src="/config.js" />
+      </head>
       <body suppressHydrationWarning>
         <AuthProvider>
           {children}
