@@ -61,6 +61,36 @@ The easiest way to run OpenDrive is with Docker Compose.
 4.  **Access**
     Open [http://localhost:3000](http://localhost:3000) to create your admin account.
 
+---
+
+## ☁️ Cloud Deployment (GCP, AWS, DigitalOcean)
+
+> ⚠️ **IMPORTANT: Frontend Rebuild Required**
+> 
+> The pre-built Docker Hub frontend image (`opendrive-frontend:latest`) has `http://localhost:5000` as the API URL baked in at build time.
+> 
+> **For cloud deployments, you MUST rebuild the frontend** with your backend's public URL, or share links and API calls will fail!
+
+### Cloud Deployment Steps
+
+1. **Deploy backend first** → Note the public URL (e.g., `https://backend.run.app`)
+2. **Rebuild frontend** with the backend URL:
+   ```bash
+   git clone https://github.com/roguezox/storage-system.git
+   cd storage-system/frontend
+   docker build --build-arg NEXT_PUBLIC_API_URL=https://YOUR-BACKEND-URL -t your-registry/opendrive-frontend .
+   docker push your-registry/opendrive-frontend
+   ```
+3. **Deploy frontend** using the rebuilt image
+
+### Platform-Specific Guides
+- [Google Cloud Run](/install/gcp)
+- [AWS App Runner](/install/aws)
+- [DigitalOcean App Platform](/install/digitalocean)
+
+### Use the Setup Wizard
+The easiest way is to use our [Setup Wizard](/setup) which generates deployment scripts with the correct configuration.
+
 ### Storage Configuration
 
 OpenDrive supports multiple storage backends. Configure via `.env` file:

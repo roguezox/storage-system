@@ -39,6 +39,15 @@ const connectDB = async () => {
     }
 };
 
+// Health check routes (defined before DB middleware to ensure liveness probe works)
+app.get('/', (req, res) => {
+    res.json({ status: 'ok', message: 'Storage Platform API is running' });
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Storage Platform API is running' });
+});
+
 // Connect on first request (for serverless)
 app.use(async (req, res, next) => {
     try {
@@ -61,17 +70,10 @@ app.use('/api/folders', folderRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/public', publicRoutes);
 
-// Health check routes
-app.get('/', (req, res) => {
-    res.json({ status: 'ok', message: 'Storage Platform API is running' });
-});
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Storage Platform API is running' });
-});
 
-// Start server only in development
-if (process.env.NODE_ENV !== 'production') {
+// Start server if run directly
+if (require.main === module) {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);

@@ -1,0 +1,53 @@
+# OpenDrive Backend - All-in-One Container
+# Includes Node.js backend + MongoDB in single container
+# For simple deployments without external DB
+
+FROM node:20-slim
+
+# Install MongoDB
+RUN apt-get update && apt-get install -y gnupg curl && \
+    curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor && \
+    echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && \
+    apt-get update && apt-get install -y mongodb-org && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Create directories
+RUN mkdir -p /data/db /app/uploads
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy application files
+COPY . .
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+    set -e\n\
+    \n\
+    # Start MongoDB in background\n\
+    echo "Starting MongoDB..."\n\
+    mongod --bind_ip_all --dbpath /data/db --fork --logpath /var/log/mongodb.log\n\
+    \n\
+    # Wait for MongoDB to be ready\n\
+    sleep 3\n\
+    \n\
+    # Start Node.js app\n\
+    echo "Starting backend..."\n\
+    export NODE_ENV=production\n\
+    export PORT=5000\n\
+    export MONGODB_URI=mongodb://localhost:27017/drive\n\
+    exec node app.js\n\
+    ' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:5000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+
+# Start both MongoDB and Node.js
+CMD ["/app/start.sh"]
