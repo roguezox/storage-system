@@ -73,15 +73,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:5000}
     container_name: opendrive-web
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:5000}
+      # Runtime injected API URL (used by docker-start.sh)
+      API_URL: ${API_URL:-http://localhost:5000}
     ports:
       - "3000:3000"
     healthcheck:
