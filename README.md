@@ -32,6 +32,15 @@ A modern, self-hosted cloud storage platform that gives you complete control ove
 *   **Modern UI**: Built with Next.js 14 and TailwindCSS for a premium experience.
 *   **Secure Sharing**: Generate public links with optional expiration (Pro).
 
+## 🚧 Upcoming Features (Roadmap)
+
+*   **🔍 File Search**: Instant search across all your files and folders.
+*   **🗑️ Trash / Recycle Bin**: Restore deleted files instead of permanent loss.
+*   **🚀 Scalable Uploads**: Streaming support for massive file uploads (>1GB).
+*   **➡️ Move & Copy**: Organizing files made easy with drag-and-drop.
+*   **👁️ File Previews**: Thumbnail generation for images and PDF previews.
+*   **🖱️ Multi-select**: Batch operations for moving or deleting multiple items.
+
 ---
 
 ## 🛠 Deployment
