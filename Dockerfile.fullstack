@@ -35,8 +35,8 @@ COPY backend/ ./
 # -------------------------------------------
 FROM node:20-slim
 
-# Install MongoDB and nginx
-RUN apt-get update && apt-get install -y gnupg curl nginx && \
+# Install MongoDB, nginx, and utilities
+RUN apt-get update && apt-get install -y gnupg curl nginx procps dos2unix && \
     curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor && \
     echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && \
     apt-get update && apt-get install -y mongodb-org && \
@@ -50,50 +50,23 @@ RUN mkdir -p /data/db /app/uploads /run/nginx
 # Copy backend
 COPY --from=backend-builder /app/backend ./backend
 
-# Copy frontend standalone build
+# Copy frontend standalone build - INCLUDING node_modules from standalone
 COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend
 COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
-# Copy nginx config
-COPY docker/nginx.conf /etc/nginx/sites-enabled/default
+# Setup nginx - remove default, copy our config
+RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
+COPY docker/nginx.conf /etc/nginx/sites-available/opendrive
+RUN ln -s /etc/nginx/sites-available/opendrive /etc/nginx/sites-enabled/opendrive
 
-# Create startup script
-RUN echo '#!/bin/bash\n\
-    set -e\n\
-    \n\
-    echo "=== Starting OpenDrive ===" \n\
-    \n\
-    # Start MongoDB\n\
-    echo "Starting MongoDB..."\n\
-    mongod --bind_ip 127.0.0.1 --dbpath /data/db --fork --logpath /var/log/mongodb.log\n\
-    sleep 3\n\
-    echo "MongoDB started"\n\
-    \n\
-    # Start backend\n\
-    echo "Starting backend on port 5000..."\n\
-    cd /app/backend\n\
-    export NODE_ENV=production\n\
-    export MONGODB_URI=mongodb://localhost:27017/drive\n\
-    node app.js &\n\
-    sleep 3\n\
-    echo "Backend started"\n\
-    \n\
-    # Start frontend\n\
-    echo "Starting frontend on port 3000..."\n\
-    cd /app/frontend\n\
-    PORT=3000 HOSTNAME=0.0.0.0 node server.js &\n\
-    sleep 3\n\
-    echo "Frontend started"\n\
-    \n\
-    # Start nginx in foreground\n\
-    echo "Starting nginx on port 8080..."\n\
-    nginx -g "daemon off;"\n\
-    ' > /app/start.sh && chmod +x /app/start.sh
+# Copy startup script and fix line endings
+COPY docker/start.sh /app/start.sh
+RUN dos2unix /app/start.sh && chmod +x /app/start.sh
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
 
 CMD ["/app/start.sh"]
