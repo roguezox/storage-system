@@ -12,8 +12,8 @@ RUN npm ci
 
 COPY frontend/ ./
 
-# Build with localhost API URL since backend is in same container
-ENV NEXT_PUBLIC_API_URL=http://localhost:5000
+# Build with relative API URL since backend is on same origin
+ENV NEXT_PUBLIC_API_URL=""
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -43,72 +43,18 @@ COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend
 COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
-# Create nginx config for reverse proxy
-RUN mkdir -p /etc/nginx/http.d
-RUN echo 'server { \
-    listen 8080; \
-    \
-    # Frontend (Next.js) \
-    location / { \
-    proxy_pass http://127.0.0.1:3000; \
-    proxy_http_version 1.1; \
-    proxy_set_header Upgrade $http_upgrade; \
-    proxy_set_header Connection "upgrade"; \
-    proxy_set_header Host $host; \
-    proxy_set_header X-Real-IP $remote_addr; \
-    proxy_cache_bypass $http_upgrade; \
-    } \
-    \
-    # Backend API \
-    location /api/ { \
-    proxy_pass http://127.0.0.1:5000; \
-    proxy_http_version 1.1; \
-    proxy_set_header Host $host; \
-    proxy_set_header X-Real-IP $remote_addr; \
-    } \
-    }' > /etc/nginx/http.d/default.conf
+# Create nginx directory
+RUN mkdir -p /etc/nginx/http.d /run/nginx
 
-# Create supervisord config to run all processes
-RUN echo '[supervisord] \
-    nodaemon=true \
-    logfile=/dev/null \
-    logfile_maxbytes=0 \
-    \
-    [program:nginx] \
-    command=nginx -g "daemon off;" \
-    autostart=true \
-    autorestart=true \
-    stdout_logfile=/dev/stdout \
-    stdout_logfile_maxbytes=0 \
-    stderr_logfile=/dev/stderr \
-    stderr_logfile_maxbytes=0 \
-    \
-    [program:backend] \
-    command=node /app/backend/app.js \
-    directory=/app/backend \
-    autostart=true \
-    autorestart=true \
-    stdout_logfile=/dev/stdout \
-    stdout_logfile_maxbytes=0 \
-    stderr_logfile=/dev/stderr \
-    stderr_logfile_maxbytes=0 \
-    \
-    [program:frontend] \
-    command=node /app/frontend/server.js \
-    directory=/app/frontend \
-    environment=PORT="3000",HOSTNAME="0.0.0.0" \
-    autostart=true \
-    autorestart=true \
-    stdout_logfile=/dev/stdout \
-    stdout_logfile_maxbytes=0 \
-    stderr_logfile=/dev/stderr \
-    stderr_logfile_maxbytes=0' > /etc/supervisord.conf
+# Copy config files
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/supervisord.conf /etc/supervisord.conf
 
 # Expose single port for Cloud Run
 EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
     CMD wget -q --spider http://127.0.0.1:8080/api/health || exit 1
 
 # Start all services
