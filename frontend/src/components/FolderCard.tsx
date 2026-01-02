@@ -28,6 +28,26 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
         router.push(`/app/folders/${id}`);
     };
 
+    const copyToClipboard = async (text: string) => {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Unable to copy to clipboard', err);
+            }
+            document.body.removeChild(textArea);
+        }
+    };
+
     const handleRename = async () => {
         if (!newName.trim() || newName === name) {
             setIsRenaming(false);
@@ -70,7 +90,7 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
             } else {
                 const response = await foldersAPI.share(id);
                 const shareUrl = `${window.location.origin}/app/public/${response.data.shareId}`;
-                await navigator.clipboard.writeText(shareUrl);
+                await copyToClipboard(shareUrl);
                 alert(`Share link copied to clipboard:\n${shareUrl}`);
             }
             onRefresh();
@@ -83,7 +103,7 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
     const copyShareLink = async () => {
         if (shareId) {
             const shareUrl = `${window.location.origin}/app/public/${shareId}`;
-            await navigator.clipboard.writeText(shareUrl);
+            await copyToClipboard(shareUrl);
             alert('Share link copied to clipboard!');
         }
     };
