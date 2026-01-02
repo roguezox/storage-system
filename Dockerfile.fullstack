@@ -1,24 +1,27 @@
-# OpenDrive All-in-One Container
-# Frontend + Backend in a single container with nginx reverse proxy
-# Perfect for Cloud Run, App Runner, and other serverless platforms
+# OpenDrive Fullstack Container
+# Includes: MongoDB + Node.js Backend + Next.js Frontend + nginx
+# Single container for Cloud Run deployment
 
-FROM node:20-alpine AS frontend-builder
+# -------------------------------------------
+# Stage 1: Build Frontend
+# -------------------------------------------
+FROM node:20-slim AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy and build frontend
 COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
 
-# Build with relative API URL since backend is on same origin
 ENV NEXT_PUBLIC_API_URL=""
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # -------------------------------------------
-FROM node:20-alpine AS backend-builder
+# Stage 2: Production Backend
+# -------------------------------------------
+FROM node:20-slim AS backend-builder
 
 WORKDIR /app/backend
 
@@ -28,12 +31,21 @@ RUN npm ci --only=production
 COPY backend/ ./
 
 # -------------------------------------------
-FROM node:20-alpine
+# Stage 3: Final Runtime Image
+# -------------------------------------------
+FROM node:20-slim
 
-# Install nginx
-RUN apk add --no-cache nginx
+# Install MongoDB and nginx
+RUN apt-get update && apt-get install -y gnupg curl nginx && \
+    curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor && \
+    echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list && \
+    apt-get update && apt-get install -y mongodb-org && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Create directories
+RUN mkdir -p /data/db /app/uploads /run/nginx
 
 # Copy backend
 COPY --from=backend-builder /app/backend ./backend
@@ -43,20 +55,45 @@ COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend
 COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
-# Create nginx directory
-RUN mkdir -p /etc/nginx/http.d /run/nginx
+# Copy nginx config
+COPY docker/nginx.conf /etc/nginx/sites-enabled/default
 
-# Copy config files
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
-COPY docker/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+# Create startup script
+RUN echo '#!/bin/bash\n\
+    set -e\n\
+    \n\
+    echo "=== Starting OpenDrive ===" \n\
+    \n\
+    # Start MongoDB\n\
+    echo "Starting MongoDB..."\n\
+    mongod --bind_ip 127.0.0.1 --dbpath /data/db --fork --logpath /var/log/mongodb.log\n\
+    sleep 3\n\
+    echo "MongoDB started"\n\
+    \n\
+    # Start backend\n\
+    echo "Starting backend on port 5000..."\n\
+    cd /app/backend\n\
+    export NODE_ENV=production\n\
+    export MONGODB_URI=mongodb://localhost:27017/drive\n\
+    node app.js &\n\
+    sleep 3\n\
+    echo "Backend started"\n\
+    \n\
+    # Start frontend\n\
+    echo "Starting frontend on port 3000..."\n\
+    cd /app/frontend\n\
+    PORT=3000 HOSTNAME=0.0.0.0 node server.js &\n\
+    sleep 3\n\
+    echo "Frontend started"\n\
+    \n\
+    # Start nginx in foreground\n\
+    echo "Starting nginx on port 8080..."\n\
+    nginx -g "daemon off;"\n\
+    ' > /app/start.sh && chmod +x /app/start.sh
 
-# Expose single port for Cloud Run
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
-    CMD wget -q --spider http://127.0.0.1:8080/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Start all services
 CMD ["/app/start.sh"]
