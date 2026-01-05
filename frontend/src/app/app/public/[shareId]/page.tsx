@@ -121,8 +121,14 @@ export default function PublicSharePage() {
     if (isLoading) {
         return (
             <div className="public-page">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '64vh' }}>
-                    <div className="spinner"></div>
+                <div className="public-header">
+                    <h1 className="public-title">📁 OpenDrive</h1>
+                    <p className="public-subtitle">Loading...</p>
+                </div>
+                <div className="public-content">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '40vh' }}>
+                        <div className="spinner"></div>
+                    </div>
                 </div>
             </div>
         );
@@ -132,12 +138,14 @@ export default function PublicSharePage() {
         return (
             <div className="public-page">
                 <div className="public-header">
-                    <h1 className="public-title">📁 Drive</h1>
+                    <h1 className="public-title">📁 OpenDrive</h1>
                     <p className="public-subtitle">Shared Content</p>
                 </div>
                 <div className="public-content">
                     <div className="empty-state">
-                        <div className="empty-state-icon"><FiAlertCircle size={48} /></div>
+                        <div className="empty-state-icon-wrapper">
+                            <FiAlertCircle size={48} />
+                        </div>
                         <h3>{error}</h3>
                         <p>The share link may have expired or been revoked</p>
                     </div>
@@ -151,94 +159,69 @@ export default function PublicSharePage() {
     return (
         <div className="public-page">
             <div className="public-header">
-                <h1 className="public-title">📁 Drive</h1>
+                <h1 className="public-title">📁 OpenDrive</h1>
                 <p className="public-subtitle">Shared Content (Read-Only)</p>
             </div>
 
             <div className="public-content">
                 {sharedData.type === 'folder' ? (
                     <div className="public-card">
-                        {/* Navigation */}
-                        <div style={{ marginBottom: 24 }}>
-                            {currentFolderId && (
-                                <button
-                                    onClick={navigateBack}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--accent)',
-                                        cursor: 'pointer',
-                                        padding: '8px 0',
-                                        marginBottom: 12
-                                    }}
-                                >
-                                    <FiArrowLeft size={18} />
-                                    Back
-                                </button>
-                            )}
+                        {/* Back button */}
+                        {currentFolderId && (
+                            <button onClick={navigateBack} className="public-back-button">
+                                <FiArrowLeft size={18} />
+                                Back
+                            </button>
+                        )}
 
-                            {/* Breadcrumb */}
-                            {navigationStack.length > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
-                                    {navigationStack.map((item, idx) => (
-                                        <span key={item._id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            {idx > 0 && <FiChevronRight size={14} color="var(--text-muted)" />}
-                                            <button
-                                                onClick={() => navigateToBreadcrumb(item._id, idx)}
-                                                style={{
-                                                    background: 'none',
-                                                    border: 'none',
-                                                    color: idx === navigationStack.length - 1 ? 'var(--text-primary)' : 'var(--accent)',
-                                                    cursor: idx === navigationStack.length - 1 ? 'default' : 'pointer',
-                                                    padding: 0,
-                                                    fontSize: 14
-                                                }}
-                                            >
-                                                {item.name}
-                                            </button>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                                <FiFolder size={32} color="var(--accent)" />
-                                <h2 style={{ fontSize: 20, fontWeight: 600 }}>{sharedData.folder.name}</h2>
+                        {/* Breadcrumb navigation */}
+                        {navigationStack.length > 0 && (
+                            <div className="public-breadcrumb">
+                                {navigationStack.map((item, idx) => (
+                                    <div key={item._id} className="public-breadcrumb-item">
+                                        {idx > 0 && (
+                                            <FiChevronRight size={14} className="public-breadcrumb-separator" />
+                                        )}
+                                        <button
+                                            onClick={() => navigateToBreadcrumb(item._id, idx)}
+                                            className="public-breadcrumb-button"
+                                            disabled={idx === navigationStack.length - 1}
+                                        >
+                                            {item.name}
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-                                Shared on {new Date(sharedData.folder.createdAt).toLocaleDateString()}
-                            </p>
+                        )}
+
+                        {/* Folder header */}
+                        <div className="public-item-header">
+                            <FiFolder size={36} color="var(--accent)" />
+                            <h2>{sharedData.folder.name}</h2>
                         </div>
+                        <p className="public-item-meta">
+                            Shared on {new Date(sharedData.folder.createdAt).toLocaleDateString()}
+                        </p>
 
                         {/* Subfolders */}
                         {sharedData.subfolders && sharedData.subfolders.length > 0 && (
-                            <div style={{ marginBottom: 24 }}>
-                                <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            <div>
+                                <h3 className="public-section-title">
                                     Folders ({sharedData.subfolders.length})
                                 </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div className="public-list">
                                     {sharedData.subfolders.map((folder) => (
                                         <div
                                             key={folder._id}
                                             onClick={() => navigateToFolder(folder._id)}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 12,
-                                                padding: 12,
-                                                borderRadius: 6,
-                                                border: '1px solid var(--border)',
-                                                cursor: 'pointer',
-                                                transition: 'background 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                            className="public-list-item clickable"
                                         >
-                                            <FiFolder size={20} color="var(--accent)" />
-                                            <span style={{ flex: 1 }}>{folder.name}</span>
+                                            <div className="public-list-item-icon">
+                                                <FiFolder size={20} color="var(--accent)" />
+                                            </div>
+                                            <div className="public-list-item-content">
+                                                <div className="public-list-item-title">{folder.name}</div>
+                                            </div>
                                             <FiChevronRight size={16} color="var(--text-muted)" />
                                         </div>
                                     ))}
@@ -249,43 +232,26 @@ export default function PublicSharePage() {
                         {/* Files */}
                         {sharedData.files && sharedData.files.length > 0 && (
                             <div>
-                                <h3 style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                <h3 className="public-section-title">
                                     Files ({sharedData.files.length})
                                 </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div className="public-list">
                                     {sharedData.files.map((file) => (
-                                        <div
-                                            key={file._id}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 12,
-                                                padding: 12,
-                                                borderRadius: 6,
-                                                border: '1px solid var(--border)',
-                                            }}
-                                        >
-                                            <FiFile size={20} color="var(--text-muted)" />
-                                            <div style={{ flex: 1 }}>
-                                                <span>{file.originalName || file.name}</span>
-                                                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                                        <div key={file._id} className="public-list-item">
+                                            <div className="public-list-item-icon">
+                                                <FiFile size={20} color="var(--text-muted)" />
+                                            </div>
+                                            <div className="public-list-item-content">
+                                                <div className="public-list-item-title">
+                                                    {file.originalName || file.name}
+                                                </div>
+                                                <div className="public-list-item-meta">
                                                     {formatSize(file.size)}
-                                                </p>
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => handleDownloadFile(file._id)}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 6,
-                                                    padding: '6px 12px',
-                                                    background: 'var(--accent)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: 4,
-                                                    cursor: 'pointer',
-                                                    fontSize: 13
-                                                }}
+                                                className="public-download-button"
                                             >
                                                 <FiDownload size={14} />
                                                 Download
@@ -296,41 +262,37 @@ export default function PublicSharePage() {
                             </div>
                         )}
 
+                        {/* Empty state */}
                         {(!sharedData.subfolders || sharedData.subfolders.length === 0) &&
                             (!sharedData.files || sharedData.files.length === 0) && (
                                 <div className="empty-state">
-                                    <p>This folder is empty</p>
+                                    <div className="empty-state-icon-wrapper">
+                                        <FiFolder size={48} />
+                                    </div>
+                                    <h3>This folder is empty</h3>
+                                    <p>No files or subfolders to display</p>
                                 </div>
                             )}
                     </div>
                 ) : (
+                    // Single file share
                     <div className="public-card">
-                        <div style={{ padding: 24, textAlign: 'center' }}>
-                            <FiFile size={64} color="var(--text-muted)" style={{ marginBottom: 16 }} />
-                            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+                        <div className="public-file-preview">
+                            <div className="public-file-icon">
+                                <FiFile size={64} />
+                            </div>
+                            <h2 className="public-file-name">
                                 {sharedData.file.originalName || sharedData.file.name}
                             </h2>
-                            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 4 }}>
+                            <p className="public-file-info">
                                 {formatSize(sharedData.file.size)} • {sharedData.file.mimeType}
                             </p>
-                            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 24 }}>
+                            <p className="public-file-date">
                                 Shared on {new Date(sharedData.file.createdAt).toLocaleDateString()}
                             </p>
                             <button
                                 onClick={handleDownloadSharedFile}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    padding: '12px 24px',
-                                    background: 'var(--accent)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: 6,
-                                    cursor: 'pointer',
-                                    fontSize: 15,
-                                    fontWeight: 500
-                                }}
+                                className="public-download-button large"
                             >
                                 <FiDownload size={18} />
                                 Download File

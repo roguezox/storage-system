@@ -88,13 +88,14 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
         try {
             if (isShared) {
                 await foldersAPI.unshare(id);
+                onRefresh();
             } else {
                 const response = await foldersAPI.share(id);
                 const shareUrl = `${window.location.origin}/app/public/${response.data.shareId}`;
                 await copyToClipboard(shareUrl);
+                onRefresh();
                 alert(`Share link copied to clipboard:\n${shareUrl}`);
             }
-            onRefresh();
         } catch (error) {
             console.error('Failed to toggle share:', error);
         }
