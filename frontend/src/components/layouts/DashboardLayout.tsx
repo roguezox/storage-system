@@ -12,20 +12,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <div className="dashboard-layout">
+        <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
             {/* Mobile Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="sidebar-overlay"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-fade-in md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 
-            <div className="dashboard-main">
+            <div className="flex-1 flex flex-col overflow-hidden">
                 <Header onMenuClick={() => setIsSidebarOpen(true)} />
-                <main className="dashboard-content">
+                <main className="flex-1 overflow-y-auto p-6">
                     {children}
                 </main>
             </div>

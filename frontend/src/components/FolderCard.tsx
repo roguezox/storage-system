@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { foldersAPI } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/utils';
 
 interface FolderCardProps {
     id: string;
@@ -110,11 +111,27 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
 
     return (
         <>
-            <div className={`folder-card ${isDeleting ? 'opacity-50' : ''}`}>
-                <div className="folder-card-content" onClick={handleOpen} style={{ flex: 1 }}>
-                    <div className="folder-icon">
-                        <FiFolder size={24} />
-                        {isShared && <span className="shared-badge">Shared</span>}
+            <div className={cn(
+                'group relative flex items-start gap-3 bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-primary)] border border-[var(--border-default)]',
+                'rounded-xl p-4 cursor-pointer transition-all duration-300 shadow-[0_1px_3px_rgba(0,0,0,0.2)]',
+                'hover:from-[var(--bg-tertiary)] hover:to-[var(--bg-secondary)] hover:border-[var(--border-hover)]',
+                'hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)]',
+                'before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-b before:from-white/[0.03] before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300',
+                isDeleting && 'opacity-50'
+            )}>
+                <div
+                    className="flex-1 relative z-10"
+                    onClick={handleOpen}
+                >
+                    <div className="relative mb-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--bg-tertiary)] flex items-center justify-center border border-[var(--border-subtle)] shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
+                            <FiFolder size={20} color="var(--text-secondary)" />
+                        </div>
+                        {isShared && (
+                            <span className="absolute left-12 top-0 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-color)] bg-[var(--accent-bg)] border border-[var(--accent-border)] rounded-md shadow-sm backdrop-blur-sm">
+                                Shared
+                            </span>
+                        )}
                     </div>
 
                     {isRenaming ? (
@@ -125,42 +142,62 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
                             onBlur={handleRename}
                             onKeyDown={e => e.key === 'Enter' && handleRename()}
                             onClick={e => e.stopPropagation()}
-                            className="input"
-                            style={{ height: '24px', padding: '0 4px', fontSize: '13px' }}
+                            className="w-full h-6 px-1 text-[13px] text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded outline-none focus:border-[var(--accent-color)]"
                             autoFocus
                         />
                     ) : (
-                        <h3 className="folder-name">{name}</h3>
+                        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1.5 truncate">
+                            {name}
+                        </h3>
                     )}
 
-                    <p className="folder-date">
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {new Date(createdAt).toLocaleDateString()}
                     </p>
                 </div>
 
-                <div className="folder-actions">
+                <div className="relative z-10">
                     <button
-                        className="folder-menu-btn"
+                        className={cn(
+                            'p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                            'hover:bg-[var(--bg-tertiary)] rounded-lg transition-all duration-300 hover:shadow-md',
+                            'opacity-0 group-hover:opacity-100'
+                        )}
                         onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
                     >
                         <FiMoreVertical size={16} />
                     </button>
 
                     {showMenu && (
-                        <div className="folder-menu" onClick={e => e.stopPropagation()}>
-                            <button onClick={() => { setIsRenaming(true); setShowMenu(false); }}>
+                        <div
+                            className="absolute right-0 top-8 min-w-[160px] bg-[var(--bg-primary)] border-2 border-[var(--border-default)] rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl overflow-hidden z-50 animate-scale-in"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={() => { setIsRenaming(true); setShowMenu(false); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                            >
                                 <FiEdit2 size={14} /> Rename
                             </button>
-                            <button onClick={handleShare}>
+                            <button
+                                onClick={handleShare}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                            >
                                 <FiShare2 size={14} /> {isShared ? 'Unshare' : 'Share'}
                             </button>
                             {isShared && (
-                                <button onClick={copyShareLink}>
+                                <button
+                                    onClick={copyShareLink}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                                >
                                     <FiLink size={14} /> Copy Link
                                 </button>
                             )}
-                            <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }}></div>
-                            <button onClick={(e) => handleDeleteClick(e)} className="danger">
+                            <div className="h-px bg-[var(--border-default)] my-1"></div>
+                            <button
+                                onClick={(e) => handleDeleteClick(e)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--danger-color)] hover:bg-[var(--danger-bg)] transition-colors text-left"
+                            >
                                 <FiTrash2 size={14} /> Delete
                             </button>
                         </div>
@@ -174,15 +211,15 @@ export function FolderCard({ id, name, createdAt, isShared, shareId, onRefresh }
                 onClose={() => setShowDeleteModal(false)}
                 title="Delete Folder"
             >
-                <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
-                        Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>?
+                <div className="mb-6">
+                    <p className="text-[var(--text-secondary)] mb-3 leading-relaxed">
+                        Are you sure you want to delete <strong className="text-[var(--text-primary)]">{name}</strong>?
                     </p>
-                    <p style={{ color: 'var(--danger)', fontSize: 13, background: 'var(--danger-subtle)', padding: '8px 12px', borderRadius: '6px' }}>
-                        This will permanently delete the folder and all its contents.
+                    <p className="text-[13px] text-[var(--text-secondary)] bg-[var(--bg-secondary)] px-3 py-2 rounded-md">
+                        This folder and its contents will be moved to trash and can be restored within 30 days.
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <div className="flex gap-3 justify-end">
                     <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
                         Cancel
                     </Button>

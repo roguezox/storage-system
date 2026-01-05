@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { foldersAPI } from '@/lib/api';
-import { FiFolder, FiFile, FiHardDrive } from 'react-icons/fi';
+import { FiFolder, FiFile, FiHardDrive, FiArrowRight, FiPlus, FiUpload, FiClock } from 'react-icons/fi';
 import Link from 'next/link';
+import { useAuthStore } from '@/stores/authStore';
 
 interface Stats {
     totalFolders: number;
@@ -22,7 +23,16 @@ function formatBytes(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Get greeting based on time of day
+function getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+}
+
 export default function DashboardPage() {
+    const { user } = useAuthStore();
     const [stats, setStats] = useState<Stats>({
         totalFolders: 0,
         totalFiles: 0,
@@ -34,7 +44,6 @@ export default function DashboardPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // Fetch both stats and folders in parallel
                 const [statsResponse, foldersResponse] = await Promise.all([
                     foldersAPI.getStats(),
                     foldersAPI.getAll()
@@ -44,7 +53,7 @@ export default function DashboardPage() {
                     totalFolders: statsResponse.data.totalFolders,
                     totalFiles: statsResponse.data.totalFiles,
                     storageUsed: statsResponse.data.storageUsed,
-                    recentFolders: foldersResponse.data.slice(0, 5),
+                    recentFolders: foldersResponse.data.slice(0, 4),
                 });
             } catch (error) {
                 console.error('Failed to fetch stats:', error);
@@ -59,8 +68,8 @@ export default function DashboardPage() {
     if (isLoading) {
         return (
             <DashboardLayout>
-                <div className="flex items-center justify-center h-64">
-                    <div className="spinner"></div>
+                <div className="dashboard-loading">
+                    <div className="spinner" style={{ width: 32, height: 32 }}></div>
                 </div>
             </DashboardLayout>
         );
@@ -68,67 +77,116 @@ export default function DashboardPage() {
 
     return (
         <DashboardLayout>
-            <div className="page-header">
-                <h1 className="page-title">Dashboard</h1>
-            </div>
-
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-label">
-                        <FiFolder size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
-                        Total Folders
-                    </div>
-                    <div className="stat-value">{stats.totalFolders}</div>
+            {/* Welcome Section */}
+            <div className="dashboard-welcome">
+                <div className="welcome-content">
+                    <h1 className="welcome-title">
+                        {getGreeting()}, <span className="welcome-name">{user?.email?.split('@')[0] || 'there'}</span>
+                    </h1>
+                    <p className="welcome-subtitle">
+                        Here&apos;s what&apos;s happening with your storage today
+                    </p>
                 </div>
-
-                <div className="stat-card">
-                    <div className="stat-label">
-                        <FiFile size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
-                        Total Files
-                    </div>
-                    <div className="stat-value">{stats.totalFiles}</div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-label">
-                        <FiHardDrive size={14} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
-                        Storage Used
-                    </div>
-                    <div className="stat-value">{formatBytes(stats.storageUsed)}</div>
-                </div>
-            </div>
-
-            <div className="section-title">Recent Folders</div>
-
-            {stats.recentFolders.length > 0 ? (
-                <div className="folders-grid">
-                    {stats.recentFolders.map(folder => (
-                        <Link
-                            key={folder._id}
-                            href={`/app/folders/${folder._id}`}
-                            className="folder-card"
-                            style={{ textDecoration: 'none' }}
-                        >
-                            <div className="folder-icon">
-                                <FiFolder size={24} />
-                            </div>
-                            <h3 className="folder-name">{folder.name}</h3>
-                            <p className="folder-date">
-                                {new Date(folder.createdAt).toLocaleDateString()}
-                            </p>
-                        </Link>
-                    ))}
-                </div>
-            ) : (
-                <div style={{ textAlign: 'center', padding: '64px', border: '1px dashed var(--border-default)', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '16px', opacity: 0.5 }}>📁</div>
-                    <h3 style={{ fontSize: '16px', color: 'var(--text-primary)', marginBottom: '8px' }}>No folders yet</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>Create your first folder to get started</p>
-                    <Link href="/app/folders" className="btn btn-primary">
-                        Go to Folders
+                <div className="welcome-actions">
+                    <Link href="/app/folders" className="btn-quick-action">
+                        <FiPlus size={18} />
+                        <span>New Folder</span>
+                    </Link>
+                    <Link href="/app/folders" className="btn-quick-action btn-quick-action-primary">
+                        <FiUpload size={18} />
+                        <span>Upload</span>
                     </Link>
                 </div>
-            )}
+            </div>
+
+            {/* Stats Grid */}
+            <div className="dashboard-stats">
+                <div className="stat-card stat-card-folders">
+                    <div className="stat-card-icon">
+                        <FiFolder size={24} />
+                    </div>
+                    <div className="stat-card-content">
+                        <span className="stat-card-value">{stats.totalFolders}</span>
+                        <span className="stat-card-label">Total Folders</span>
+                    </div>
+                    <div className="stat-card-decoration"></div>
+                </div>
+
+                <div className="stat-card stat-card-files">
+                    <div className="stat-card-icon">
+                        <FiFile size={24} />
+                    </div>
+                    <div className="stat-card-content">
+                        <span className="stat-card-value">{stats.totalFiles}</span>
+                        <span className="stat-card-label">Total Files</span>
+                    </div>
+                    <div className="stat-card-decoration"></div>
+                </div>
+
+                <div className="stat-card stat-card-storage">
+                    <div className="stat-card-icon">
+                        <FiHardDrive size={24} />
+                    </div>
+                    <div className="stat-card-content">
+                        <span className="stat-card-value">{formatBytes(stats.storageUsed)}</span>
+                        <span className="stat-card-label">Storage Used</span>
+                    </div>
+                    <div className="stat-card-decoration"></div>
+                </div>
+            </div>
+
+            {/* Recent Folders Section */}
+            <div className="dashboard-section">
+                <div className="section-header">
+                    <div className="section-header-left">
+                        <FiClock size={18} className="section-header-icon" />
+                        <h2 className="section-header-title">Recent Folders</h2>
+                    </div>
+                    <Link href="/app/folders" className="section-header-link">
+                        View all <FiArrowRight size={14} />
+                    </Link>
+                </div>
+
+                {stats.recentFolders.length > 0 ? (
+                    <div className="recent-folders-grid">
+                        {stats.recentFolders.map((folder, index) => (
+                            <Link
+                                key={folder._id}
+                                href={`/app/folders/${folder._id}`}
+                                className="recent-folder-card"
+                                style={{ animationDelay: `${index * 50}ms` }}
+                            >
+                                <div className="recent-folder-icon">
+                                    <FiFolder size={20} />
+                                </div>
+                                <div className="recent-folder-info">
+                                    <h3 className="recent-folder-name">{folder.name}</h3>
+                                    <p className="recent-folder-date">
+                                        {new Date(folder.createdAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })}
+                                    </p>
+                                </div>
+                                <FiArrowRight className="recent-folder-arrow" size={16} />
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="empty-state-dashboard">
+                        <div className="empty-state-icon-wrapper">
+                            <FiFolder size={32} />
+                        </div>
+                        <h3>No folders yet</h3>
+                        <p>Create your first folder to organize your files</p>
+                        <Link href="/app/folders" className="btn-get-started">
+                            <FiPlus size={18} />
+                            Create First Folder
+                        </Link>
+                    </div>
+                )}
+            </div>
         </DashboardLayout>
     );
 }

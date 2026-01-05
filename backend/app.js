@@ -63,12 +63,14 @@ const authRoutes = require('./routes/auth');
 const folderRoutes = require('./routes/folders');
 const fileRoutes = require('./routes/files');
 const publicRoutes = require('./routes/public');
+const searchRoutes = require('./routes/search');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/search', searchRoutes);
 
 
 

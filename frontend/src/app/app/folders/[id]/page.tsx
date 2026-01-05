@@ -9,6 +9,8 @@ import { Breadcrumb } from '@/components/Breadcrumb';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { DropZone } from '@/components/DropZone';
+import { UploadProgress, UploadItem } from '@/components/UploadProgress';
 import { foldersAPI, filesAPI } from '@/lib/api';
 import { FiPlus, FiUpload } from 'react-icons/fi';
 
@@ -20,7 +22,7 @@ interface Folder {
     shareId?: string;
 }
 
-interface File {
+interface StoredFile {
     _id: string;
     name: string;
     originalName?: string;
@@ -43,7 +45,7 @@ export default function FolderDetailPage() {
 
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
     const [subfolders, setSubfolders] = useState<Folder[]>([]);
-    const [files, setFiles] = useState<File[]>([]);
+    const [files, setFiles] = useState<StoredFile[]>([]);
     const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,7 +53,7 @@ export default function FolderDetailPage() {
     const [newFolderName, setNewFolderName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
-    const [isUploading, setIsUploading] = useState(false);
+    const [uploads, setUploads] = useState<UploadItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchFolderData = useCallback(async () => {
@@ -88,22 +90,65 @@ export default function FolderDetailPage() {
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleFilesSelected = async (selectedFiles: File[]) => {
+        if (selectedFiles.length === 0) return;
 
-        setIsUploading(true);
-        try {
-            await filesAPI.upload(folderId, file);
-            fetchFolderData();
-        } catch (error) {
-            console.error('Failed to upload file:', error);
-        } finally {
-            setIsUploading(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
+        // Initialize upload items
+        const newUploads: UploadItem[] = selectedFiles.map(file => ({
+            id: crypto.randomUUID(),
+            file,
+            progress: 0,
+            status: 'pending' as const,
+        }));
+
+        setUploads(prev => [...prev, ...newUploads]);
+
+        // Upload files sequentially
+        for (const upload of newUploads) {
+            try {
+                setUploads(prev => prev.map(u =>
+                    u.id === upload.id ? { ...u, status: 'uploading' } : u
+                ));
+
+                await filesAPI.upload(folderId, [upload.file], (progress) => {
+                    setUploads(prev => prev.map(u =>
+                        u.id === upload.id ? { ...u, progress } : u
+                    ));
+                });
+
+                setUploads(prev => prev.map(u =>
+                    u.id === upload.id ? { ...u, status: 'success', progress: 100 } : u
+                ));
+            } catch (error) {
+                console.error('Upload failed:', error);
+                setUploads(prev => prev.map(u =>
+                    u.id === upload.id
+                        ? { ...u, status: 'error', error: 'Upload failed' }
+                        : u
+                ));
             }
         }
+
+        // Refresh folder data after all uploads
+        fetchFolderData();
+    };
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFiles = Array.from(e.target.files || []);
+        if (selectedFiles.length > 0) {
+            handleFilesSelected(selectedFiles);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleDrop = (droppedFiles: File[]) => {
+        handleFilesSelected(droppedFiles);
+    };
+
+    const clearUploads = () => {
+        setUploads([]);
     };
 
     if (isLoading) {
@@ -118,27 +163,29 @@ export default function FolderDetailPage() {
 
     return (
         <DashboardLayout>
-            <Breadcrumb items={breadcrumb} />
+            <DropZone onDrop={handleDrop}>
+                <Breadcrumb items={breadcrumb} />
 
-            <div className="page-header">
-                <h1 className="page-title">{currentFolder?.name}</h1>
-                <div className="flex gap-3">
-                    <Button onClick={() => setShowCreateFolderModal(true)} variant="secondary">
-                        <FiPlus size={16} />
-                        New Folder
-                    </Button>
-                    <Button onClick={() => fileInputRef.current?.click()} isLoading={isUploading}>
-                        <FiUpload size={16} />
-                        Upload File
-                    </Button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        onChange={handleFileUpload}
-                        style={{ display: 'none' }}
-                    />
+                <div className="page-header">
+                    <h1 className="page-title">{currentFolder?.name}</h1>
+                    <div className="flex gap-3">
+                        <Button onClick={() => setShowCreateFolderModal(true)} variant="secondary">
+                            <FiPlus size={16} />
+                            New Folder
+                        </Button>
+                        <Button onClick={() => fileInputRef.current?.click()}>
+                            <FiUpload size={16} />
+                            Upload Files
+                        </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            onChange={handleFileInputChange}
+                            style={{ display: 'none' }}
+                        />
+                    </div>
                 </div>
-            </div>
 
             {/* Subfolders */}
             {subfolders.length > 0 && (
@@ -197,11 +244,19 @@ export default function FolderDetailPage() {
                         </Button>
                         <Button onClick={() => fileInputRef.current?.click()}>
                             <FiUpload size={16} />
-                            Upload File
+                            Upload Files
                         </Button>
                     </div>
                 </div>
             )}
+
+                {/* Upload Progress Widget */}
+                {uploads.length > 0 && (
+                    <div style={{ position: 'fixed', bottom: '24px', right: '24px', width: '400px', maxWidth: 'calc(100vw - 48px)', zIndex: 1000 }}>
+                        <UploadProgress uploads={uploads} onClose={clearUploads} />
+                    </div>
+                )}
+            </DropZone>
 
             {/* Create Folder Modal */}
             <Modal

@@ -6,6 +6,8 @@ import { filesAPI } from '@/lib/api';
 import { getApiUrl } from '@/lib/config';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { FilePreview } from '@/components/FilePreview';
+import { cn } from '@/lib/utils';
 import Cookies from 'js-cookie';
 
 interface FileCardProps {
@@ -27,6 +29,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
     const [newName, setNewName] = useState(name);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
 
     const formatSize = (bytes: number) => {
         if (bytes < 1024) return `${bytes} B`;
@@ -35,7 +38,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
     };
 
     const getFileIcon = () => {
-        const size = 24;
+        const size = 20;
         const color = 'var(--text-secondary)';
 
         if (mimeType.startsWith('image/')) return <FiImage size={size} color={color} />;
@@ -156,11 +159,27 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
 
     return (
         <>
-            <div className={`file-card ${isDeleting ? 'opacity-50' : ''}`}>
-                <div className="file-card-content" onClick={handleDownload} style={{ flex: 1 }}>
-                    <div className="file-icon">
-                        {getFileIcon()}
-                        {isShared && <span className="shared-badge">Shared</span>}
+            <div className={cn(
+                'group relative flex items-start gap-3 bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-primary)] border border-[var(--border-default)]',
+                'rounded-xl p-4 transition-all duration-300 shadow-[0_1px_3px_rgba(0,0,0,0.2)]',
+                'hover:from-[var(--bg-tertiary)] hover:to-[var(--bg-secondary)] hover:border-[var(--border-hover)]',
+                'hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)]',
+                'before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-b before:from-white/[0.03] before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300',
+                isDeleting && 'opacity-50'
+            )}>
+                <div
+                    className="flex-1 cursor-pointer relative z-10"
+                    onClick={() => setShowPreview(true)}
+                >
+                    <div className="relative mb-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--bg-tertiary)] flex items-center justify-center border border-[var(--border-subtle)] shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
+                            {getFileIcon()}
+                        </div>
+                        {isShared && (
+                            <span className="absolute left-12 top-0 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-color)] bg-[var(--accent-bg)] border border-[var(--accent-border)] rounded-md shadow-sm backdrop-blur-sm">
+                                Shared
+                            </span>
+                        )}
                     </div>
 
                     {isRenaming ? (
@@ -171,45 +190,68 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                             onBlur={handleRename}
                             onKeyDown={e => e.key === 'Enter' && handleRename()}
                             onClick={e => e.stopPropagation()}
-                            className="input"
-                            style={{ height: '24px', padding: '0 4px', fontSize: '13px' }}
+                            className="w-full h-6 px-1 text-[13px] text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded outline-none focus:border-[var(--accent-color)]"
                             autoFocus
                         />
                     ) : (
-                        <h3 className="file-name">{originalName || name}</h3>
+                        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1.5 truncate">
+                            {originalName || name}
+                        </h3>
                     )}
 
-                    <p className="file-meta">
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {formatSize(size)} • {new Date(createdAt).toLocaleDateString()}
                     </p>
                 </div>
 
-                <div className="file-actions">
+                <div className="relative z-10">
                     <button
-                        className="file-menu-btn"
+                        className={cn(
+                            'p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                            'hover:bg-[var(--bg-tertiary)] rounded-lg transition-all duration-300 hover:shadow-md',
+                            'opacity-0 group-hover:opacity-100'
+                        )}
                         onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
                     >
                         <FiMoreVertical size={16} />
                     </button>
 
                     {showMenu && (
-                        <div className="file-menu" onClick={e => e.stopPropagation()}>
-                            <button onClick={handleDownload}>
+                        <div
+                            className="absolute right-0 top-8 min-w-[160px] bg-[var(--bg-primary)] border-2 border-[var(--border-default)] rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl overflow-hidden z-50 animate-scale-in"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={handleDownload}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                            >
                                 <FiDownload size={14} /> Download
                             </button>
-                            <button onClick={() => { setIsRenaming(true); setShowMenu(false); }}>
+                            <button
+                                onClick={() => { setIsRenaming(true); setShowMenu(false); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                            >
                                 <FiEdit2 size={14} /> Rename
                             </button>
-                            <button onClick={handleShare}>
+                            <button
+                                onClick={handleShare}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                            >
                                 <FiShare2 size={14} /> {isShared ? 'Unshare' : 'Share'}
                             </button>
                             {isShared && (
-                                <button onClick={copyShareLink}>
+                                <button
+                                    onClick={copyShareLink}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                                >
                                     <FiLink size={14} /> Copy Link
                                 </button>
                             )}
-                            <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }}></div>
-                            <button onClick={(e) => handleDeleteClick(e)} className="danger">
+                            <div className="h-px bg-[var(--border-default)] my-1"></div>
+                            <button
+                                onClick={(e) => handleDeleteClick(e)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--danger-color)] hover:bg-[var(--danger-bg)] transition-colors text-left"
+                            >
                                 <FiTrash2 size={14} /> Delete
                             </button>
                         </div>
@@ -223,15 +265,15 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                 onClose={() => setShowDeleteModal(false)}
                 title="Delete File"
             >
-                <div style={{ marginBottom: 24 }}>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
-                        Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>?
+                <div className="mb-6">
+                    <p className="text-[var(--text-secondary)] mb-3 leading-relaxed">
+                        Are you sure you want to delete <strong className="text-[var(--text-primary)]">{name}</strong>?
                     </p>
-                    <p style={{ color: 'var(--danger)', fontSize: 13, background: 'var(--danger-subtle)', padding: '8px 12px', borderRadius: '6px' }}>
-                        This action cannot be undone.
+                    <p className="text-[13px] text-[var(--text-secondary)] bg-[var(--bg-secondary)] px-3 py-2 rounded-md">
+                        This file will be moved to trash and can be restored within 30 days.
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <div className="flex gap-3 justify-end">
                     <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
                         Cancel
                     </Button>
@@ -240,6 +282,15 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                     </Button>
                 </div>
             </Modal>
+
+            {/* File Preview Modal */}
+            <FilePreview
+                isOpen={showPreview}
+                onClose={() => setShowPreview(false)}
+                fileId={id}
+                fileName={originalName || name}
+                mimeType={mimeType}
+            />
         </>
     );
 }

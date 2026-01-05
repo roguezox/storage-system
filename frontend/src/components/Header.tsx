@@ -2,6 +2,7 @@
 
 import { useAuthStore } from '@/stores/authStore';
 import { FiUser, FiMenu } from 'react-icons/fi';
+import { Search } from './Search';
 
 interface HeaderProps {
     onMenuClick?: () => void;
@@ -11,39 +12,25 @@ export function Header({ onMenuClick }: HeaderProps) {
     const { user } = useAuthStore();
 
     return (
-        <header className="header" style={{ width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+        <header className="min-h-[72px] border-b-2 border-[var(--border-subtle)] flex items-center justify-between px-6 py-3 bg-[rgba(10,10,11,0.95)] backdrop-blur-xl sticky top-0 z-20 w-full shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+            <div className="flex items-center w-full gap-4">
                 <button
-                    className="mobile-menu-btn"
+                    className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-secondary)] cursor-pointer flex-shrink-0 hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)] hover:shadow-md transition-all duration-200"
                     onClick={onMenuClick}
-                    style={{
-                        display: 'none', // Hidden by default, shown in mobile via CSS
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-secondary)',
-                        padding: '8px',
-                        cursor: 'pointer'
-                    }}
                 >
                     <FiMenu size={20} />
                 </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '4px 8px 4px 6px',
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        color: 'var(--text-secondary)'
-                    }}>
-                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FiUser size={12} />
+                <div className="flex-1 max-w-[600px]">
+                    <Search />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <div className="group flex items-center gap-2.5 px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded-lg text-[13px] text-[var(--text-secondary)] shadow-sm hover:shadow-md transition-all duration-200 hover:border-[var(--border-hover)]">
+                        <div className="w-7 h-7 rounded-md bg-[var(--accent)] flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-110">
+                            <FiUser size={14} className="text-white" />
                         </div>
-                        <span>{user?.email}</span>
+                        <span className="font-medium">{user?.email}</span>
                     </div>
                 </div>
             </div>

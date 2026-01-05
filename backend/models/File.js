@@ -43,11 +43,21 @@ const fileSchema = new mongoose.Schema({
         default: null,
         index: true
     },
+    deletedAt: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
+
+// Text index for search functionality
+fileSchema.index({ name: 'text', originalName: 'text' });
+
+// Index for trash queries and performance
+fileSchema.index({ deletedAt: 1, ownerId: 1 });
 
 module.exports = mongoose.model('File', fileSchema);
 

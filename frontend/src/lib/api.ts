@@ -64,17 +64,32 @@ export const foldersAPI = {
     delete: (id: string) => api.delete(`/api/folders/${id}`),
     share: (id: string) => api.post(`/api/folders/${id}/share`),
     unshare: (id: string) => api.delete(`/api/folders/${id}/share`),
+
+    // Trash operations
+    getTrash: () => api.get('/api/folders/trash/list'),
+    restore: (id: string) => api.post(`/api/folders/${id}/restore`),
+    permanentDelete: (id: string) => api.delete(`/api/folders/${id}/permanent`),
+    emptyTrash: () => api.post('/api/folders/trash/empty'),
 };
 
 // Files API
 export const filesAPI = {
     getByFolder: (folderId: string) => api.get(`/api/files/folder/${folderId}`),
-    upload: (folderId: string, file: File) => {
+    upload: (folderId: string, files: File[], onProgress?: (progress: number) => void) => {
         const formData = new FormData();
-        formData.append('file', file);
+        files.forEach(file => formData.append('files', file));
         formData.append('folderId', folderId);
+
         return api.post('/api/files', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                    const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    onProgress(percentCompleted);
+                }
+            },
         });
     },
     rename: (id: string, name: string) =>
@@ -82,10 +97,22 @@ export const filesAPI = {
     delete: (id: string) => api.delete(`/api/files/${id}`),
     share: (id: string) => api.post(`/api/files/${id}/share`),
     unshare: (id: string) => api.delete(`/api/files/${id}/share`),
+
+    // Trash operations
+    getTrash: () => api.get('/api/files/trash/list'),
+    restore: (id: string) => api.post(`/api/files/${id}/restore`),
+    permanentDelete: (id: string) => api.delete(`/api/files/${id}/permanent`),
+    emptyTrash: () => api.post('/api/files/trash/empty'),
 };
 
 // Public API
 export const publicAPI = {
     getShared: (shareId: string) => api.get(`/api/public/${shareId}`),
     getSubfolder: (shareId: string, folderId: string) => api.get(`/api/public/${shareId}/folder/${folderId}`),
+};
+
+// Search API
+export const searchAPI = {
+    search: (query: string, type?: 'files' | 'folders' | 'all') =>
+        api.get('/api/search', { params: { q: query, type } }),
 };

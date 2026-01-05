@@ -25,7 +25,8 @@ router.get('/folder/:folderId', async (req, res) => {
     try {
         const files = await File.find({
             folderId: req.params.folderId,
-            ownerId: req.userId
+            ownerId: req.userId,
+            deletedAt: null
         }).sort({ createdAt: -1 });
 
         res.json(files);
@@ -34,11 +35,11 @@ router.get('/folder/:folderId', async (req, res) => {
     }
 });
 
-// Upload file - store using storage provider
-router.post('/', upload.single('file'), async (req, res) => {
+// Upload file(s) - store using storage provider (supports multiple files)
+router.post('/', upload.array('files', 10), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
         }
 
         const { folderId } = req.body;
@@ -48,28 +49,51 @@ router.post('/', upload.single('file'), async (req, res) => {
         }
 
         const storage = getStorage();
+        const uploadedFiles = [];
+        const errors = [];
 
-        // Upload to storage provider
-        const { storageKey, size } = await storage.upload(
-            req.file.originalname,
-            req.file.buffer,
-            req.file.mimetype,
-            req.userId.toString()
-        );
+        for (const file of req.files) {
+            try {
+                // Upload to storage provider
+                const { storageKey, size } = await storage.upload(
+                    file.originalname,
+                    file.buffer,
+                    file.mimetype,
+                    req.userId.toString()
+                );
 
-        const file = new File({
-            name: `${generateUUID()}-${req.file.originalname}`,
-            originalName: req.file.originalname,
-            folderId,
-            ownerId: req.userId,
-            storageKey,
-            storageProvider: storage.getType(),
-            mimeType: req.file.mimetype,
-            size
+                const fileDoc = new File({
+                    name: `${generateUUID()}-${file.originalname}`,
+                    originalName: file.originalname,
+                    folderId,
+                    ownerId: req.userId,
+                    storageKey,
+                    storageProvider: storage.getType(),
+                    mimeType: file.mimetype,
+                    size
+                });
+
+                await fileDoc.save();
+                uploadedFiles.push(fileDoc);
+            } catch (err) {
+                console.error(`Failed to upload ${file.originalname}:`, err);
+                errors.push({ filename: file.originalname, error: err.message });
+            }
+        }
+
+        if (uploadedFiles.length === 0) {
+            return res.status(500).json({
+                error: 'All uploads failed',
+                details: errors
+            });
+        }
+
+        res.status(201).json({
+            files: uploadedFiles,
+            success: uploadedFiles.length,
+            failed: errors.length,
+            errors: errors.length > 0 ? errors : undefined
         });
-
-        await file.save();
-        res.status(201).json(file);
     } catch (error) {
         console.error('Upload error:', error);
         res.status(500).json({ error: error.message });
@@ -81,7 +105,8 @@ router.get('/:id/download', async (req, res) => {
     try {
         const file = await File.findOne({
             _id: req.params.id,
-            ownerId: req.userId
+            ownerId: req.userId,
+            deletedAt: null
         });
 
         if (!file) {
@@ -114,7 +139,7 @@ router.put('/:id', async (req, res) => {
         }
 
         const file = await File.findOneAndUpdate(
-            { _id: req.params.id, ownerId: req.userId },
+            { _id: req.params.id, ownerId: req.userId, deletedAt: null },
             { originalName: name },
             { new: true }
         );
@@ -132,23 +157,18 @@ router.put('/:id', async (req, res) => {
 // Delete file
 router.delete('/:id', async (req, res) => {
     try {
-        const file = await File.findOne({
-            _id: req.params.id,
-            ownerId: req.userId
-        });
+        // Soft delete file by setting deletedAt timestamp
+        const file = await File.findOneAndUpdate(
+            { _id: req.params.id, ownerId: req.userId, deletedAt: null },
+            { deletedAt: new Date() },
+            { new: true }
+        );
 
         if (!file) {
             return res.status(404).json({ error: 'File not found' });
         }
 
-        // Delete from storage
-        const storage = getStorage();
-        await storage.delete(file.storageKey);
-
-        // Delete from database
-        await File.deleteOne({ _id: file._id });
-
-        res.json({ message: 'File deleted successfully' });
+        res.json({ message: 'File moved to trash' });
     } catch (error) {
         console.error('Delete error:', error);
         res.status(500).json({ error: error.message });
@@ -161,7 +181,7 @@ router.post('/:id/share', async (req, res) => {
         const shareId = generateUUID();
 
         const file = await File.findOneAndUpdate(
-            { _id: req.params.id, ownerId: req.userId },
+            { _id: req.params.id, ownerId: req.userId, deletedAt: null },
             { isShared: true, shareId },
             { new: true }
         );
@@ -184,7 +204,7 @@ router.post('/:id/share', async (req, res) => {
 router.delete('/:id/share', async (req, res) => {
     try {
         const file = await File.findOneAndUpdate(
-            { _id: req.params.id, ownerId: req.userId },
+            { _id: req.params.id, ownerId: req.userId, deletedAt: null },
             { isShared: false, shareId: null },
             { new: true }
         );
@@ -194,6 +214,110 @@ router.delete('/:id/share', async (req, res) => {
         }
 
         res.json({ message: 'Share link revoked' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Trash Management Endpoints
+
+// Get all trashed files
+router.get('/trash/list', async (req, res) => {
+    try {
+        const files = await File.find({
+            ownerId: req.userId,
+            deletedAt: { $ne: null }
+        }).sort({ deletedAt: -1 });
+
+        res.json(files);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Restore file from trash
+router.post('/:id/restore', async (req, res) => {
+    try {
+        const file = await File.findOneAndUpdate(
+            { _id: req.params.id, ownerId: req.userId, deletedAt: { $ne: null } },
+            { deletedAt: null },
+            { new: true }
+        );
+
+        if (!file) {
+            return res.status(404).json({ error: 'File not found in trash' });
+        }
+
+        res.json({ message: 'File restored successfully', file });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Permanently delete file
+router.delete('/:id/permanent', async (req, res) => {
+    try {
+        const file = await File.findOne({
+            _id: req.params.id,
+            ownerId: req.userId,
+            deletedAt: { $ne: null }
+        });
+
+        if (!file) {
+            return res.status(404).json({ error: 'File not found in trash' });
+        }
+
+        // Delete from storage
+        const storage = getStorage();
+        try {
+            await storage.delete(file.storageKey);
+        } catch (err) {
+            console.error(`Failed to delete ${file.storageKey} from storage:`, err);
+            // Continue with database deletion even if storage deletion fails
+        }
+
+        // Delete from database
+        await File.deleteOne({ _id: file._id });
+
+        res.json({ message: 'File permanently deleted' });
+    } catch (error) {
+        console.error('Permanent delete error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Empty entire trash
+router.post('/trash/empty', async (req, res) => {
+    try {
+        const files = await File.find({
+            ownerId: req.userId,
+            deletedAt: { $ne: null }
+        });
+
+        const storage = getStorage();
+        let deletedCount = 0;
+
+        // Delete from storage
+        for (const file of files) {
+            try {
+                await storage.delete(file.storageKey);
+                deletedCount++;
+            } catch (err) {
+                console.error(`Failed to delete ${file.storageKey}:`, err);
+                // Continue with other files even if one fails
+            }
+        }
+
+        // Delete from database
+        const result = await File.deleteMany({
+            ownerId: req.userId,
+            deletedAt: { $ne: null }
+        });
+
+        res.json({
+            message: 'Trash emptied successfully',
+            deletedCount: result.deletedCount
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

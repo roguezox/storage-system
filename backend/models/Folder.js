@@ -32,6 +32,10 @@ const folderSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    deletedAt: {
+        type: Date,
+        default: null
     }
 });
 
@@ -51,5 +55,11 @@ folderSchema.virtual('files', {
 
 folderSchema.set('toObject', { virtuals: true });
 folderSchema.set('toJSON', { virtuals: true });
+
+// Indexes for performance
+folderSchema.index({ deletedAt: 1, ownerId: 1 });
+
+// Text index for search functionality
+folderSchema.index({ name: 'text' });
 
 module.exports = mongoose.model('Folder', folderSchema);
