@@ -148,10 +148,21 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
             const a = document.createElement('a');
             a.href = url;
             a.download = originalName || name || 'download';
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+
             document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+
+            // Trigger download with a small delay for mobile
+            setTimeout(() => {
+                a.click();
+
+                // Clean up after a delay to ensure download starts
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
+            }, 0);
         } catch (error) {
             console.error('Download error:', error);
             alert('Failed to download file');

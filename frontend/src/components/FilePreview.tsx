@@ -70,16 +70,43 @@ export function FilePreview({ isOpen, onClose, fileId, fileName, mimeType }: Fil
         }
     };
 
-    const handleDownload = () => {
-        const token = Cookies.get('token');
-        const downloadUrl = `${getApiUrl()}/api/files/${fileId}/download`;
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('Authorization', `Bearer ${token}`);
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownload = async () => {
+        try {
+            const token = Cookies.get('token');
+            const response = await fetch(`${getApiUrl()}/api/files/${fileId}/download`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Download failed');
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+
+            document.body.appendChild(link);
+
+            // Trigger download with a small delay for mobile
+            setTimeout(() => {
+                link.click();
+
+                // Clean up after a delay to ensure download starts
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    document.body.removeChild(link);
+                }, 100);
+            }, 0);
+        } catch (error) {
+            console.error('Download error:', error);
+            setError('Failed to download file');
+        }
     };
 
     const renderPreviewContent = () => {
