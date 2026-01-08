@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const logger = require('./utils/logger');
+const requestLogger = require('./middleware/requestLogger');
 
 // Load environment variables (only in dev)
 if (process.env.NODE_ENV !== 'production') {
@@ -20,6 +22,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware (before routes)
+app.use(requestLogger);
+
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -32,9 +37,23 @@ const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI);
         isConnected = true;
-        console.log('✅ Connected to MongoDB');
+        logger.info('MongoDB connection established', {
+            component: 'database',
+            operation: 'connect',
+            mongoUri: process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/\/\/.*@/, '//***@') : 'not_configured',
+            environment: process.env.NODE_ENV || 'production'
+        });
     } catch (err) {
-        console.error('❌ MongoDB connection error:', err.message);
+        logger.error('MongoDB connection failed', {
+            component: 'database',
+            operation: 'connect',
+            error: {
+                message: err.message,
+                code: err.code,
+                name: err.name
+            },
+            mongoUri: process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/\/\/.*@/, '//***@') : 'not_configured'
+        });
         throw err;
     }
 };
@@ -78,7 +97,18 @@ app.use('/api/search', searchRoutes);
 if (require.main === module) {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
+        const { getStorage } = require('./storage');
+        const storage = getStorage();
+
+        logger.info('Server started successfully', {
+            component: 'application',
+            operation: 'startup',
+            port: PORT,
+            environment: process.env.NODE_ENV || 'production',
+            storageProvider: storage.getType(),
+            nodeVersion: process.version,
+            pid: process.pid
+        });
     });
 }
 

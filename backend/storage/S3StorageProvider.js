@@ -2,6 +2,7 @@ const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadO
 const crypto = require('crypto');
 const path = require('path');
 const StorageProvider = require('./StorageProvider');
+const logger = require('../utils/logger');
 
 /**
  * S3-Compatible Storage Provider
@@ -48,6 +49,15 @@ class S3StorageProvider extends StorageProvider {
             ContentType: mimeType
         }));
 
+        logger.debug('File stored in S3-compatible storage', {
+            component: 'storage',
+            operation: 's3_upload',
+            bucket: this.bucket,
+            storageKey: storageKey,
+            fileSize: buffer.length,
+            contentType: mimeType
+        });
+
         return {
             storageKey,
             size: buffer.length
@@ -65,7 +75,17 @@ class S3StorageProvider extends StorageProvider {
         for await (const chunk of response.Body) {
             chunks.push(chunk);
         }
-        return Buffer.concat(chunks);
+        const buffer = Buffer.concat(chunks);
+
+        logger.debug('File retrieved from S3-compatible storage', {
+            component: 'storage',
+            operation: 's3_download',
+            bucket: this.bucket,
+            storageKey: storageKey,
+            fileSize: buffer.length
+        });
+
+        return buffer;
     }
 
     async delete(storageKey) {
@@ -73,6 +93,13 @@ class S3StorageProvider extends StorageProvider {
             Bucket: this.bucket,
             Key: storageKey
         }));
+
+        logger.debug('File deleted from S3-compatible storage', {
+            component: 'storage',
+            operation: 's3_delete',
+            bucket: this.bucket,
+            storageKey: storageKey
+        });
     }
 
     async exists(storageKey) {

@@ -1,0 +1,42 @@
+# Ignore build artifacts
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Ignore Git
+.git/
+.gitignore
+.gitattributes
+
+# Ignore documentation
+*.md
+README*
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Ignore scripts
+*.sh
+
+# Ignore test files
+src/test/
+
+# Ignore Maven wrapper (we'll use the one from base image)
+mvnw
+mvnw.cmd
+
+# Ignore other files
+.DS_Store
+*.log

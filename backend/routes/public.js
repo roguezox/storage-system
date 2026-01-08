@@ -2,6 +2,7 @@ const express = require('express');
 const Folder = require('../models/Folder');
 const File = require('../models/File');
 const { getStorage } = require('../storage');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -21,6 +22,19 @@ router.get('/:shareId', async (req, res) => {
 
             const files = await File.find({
                 folderId: folder._id
+            });
+
+            logger.info('Public folder accessed', {
+                component: 'public',
+                operation: 'view_shared_folder',
+                shareId: req.params.shareId,
+                folderId: folder._id.toString(),
+                folderName: folder.name,
+                ownerId: folder.ownerId.toString(),
+                subfolderCount: subfolders.length,
+                fileCount: files.length,
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent']
             });
 
             return res.json({
@@ -43,6 +57,17 @@ router.get('/:shareId', async (req, res) => {
         });
 
         if (file) {
+            logger.info('Public file accessed', {
+                component: 'public',
+                operation: 'view_shared_file',
+                shareId: req.params.shareId,
+                fileId: file._id.toString(),
+                fileName: file.originalName,
+                ownerId: file.ownerId.toString(),
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent']
+            });
+
             return res.json({
                 type: 'file',
                 file: {
@@ -58,6 +83,16 @@ router.get('/:shareId', async (req, res) => {
 
         res.status(404).json({ error: 'Shared content not found' });
     } catch (error) {
+        logger.error('Public access error', {
+            component: 'public',
+            operation: 'access_shared_content',
+            shareId: req.params.shareId,
+            error: {
+                message: error.message,
+                stack: error.stack
+            },
+            ipAddress: req.ip
+        });
         res.status(500).json({ error: error.message });
     }
 });
@@ -80,6 +115,14 @@ router.get('/:shareId/folder/:folderId', async (req, res) => {
         // Check if the requested folder is a descendant of the shared folder
         const isDescendant = await checkIsDescendant(folderId, rootFolder._id);
         if (!isDescendant && folderId !== rootFolder._id.toString()) {
+            logger.warn('Public access denied - invalid descendant', {
+                component: 'public',
+                operation: 'access_denied',
+                shareId: shareId,
+                requestedFolderId: folderId,
+                reason: 'not_descendant_of_shared_folder',
+                ipAddress: req.ip
+            });
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -148,6 +191,18 @@ router.get('/:shareId/file/:fileId/download', async (req, res) => {
         const storage = getStorage();
         const buffer = await storage.download(file.storageKey);
 
+        logger.info('Public file downloaded from shared folder', {
+            component: 'public',
+            operation: 'download_shared_file',
+            shareId: shareId,
+            fileId: file._id.toString(),
+            fileName: file.originalName,
+            fileSize: buffer.length,
+            ownerId: file.ownerId.toString(),
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
         res.set({
             'Content-Type': file.mimeType,
             'Content-Disposition': `attachment; filename="${file.originalName || file.name}"`,
@@ -156,7 +211,17 @@ router.get('/:shareId/file/:fileId/download', async (req, res) => {
 
         res.send(buffer);
     } catch (error) {
-        console.error('Public download error:', error);
+        logger.error('Public file download failed', {
+            component: 'public',
+            operation: 'download_shared_file',
+            shareId: req.params.shareId,
+            fileId: req.params.fileId,
+            error: {
+                message: error.message,
+                stack: error.stack
+            },
+            ipAddress: req.ip
+        });
         res.status(500).json({ error: error.message });
     }
 });
@@ -177,6 +242,18 @@ router.get('/:shareId/download', async (req, res) => {
         const storage = getStorage();
         const buffer = await storage.download(file.storageKey);
 
+        logger.info('Public file downloaded directly', {
+            component: 'public',
+            operation: 'download_shared_file_direct',
+            shareId: req.params.shareId,
+            fileId: file._id.toString(),
+            fileName: file.originalName,
+            fileSize: buffer.length,
+            ownerId: file.ownerId.toString(),
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
         res.set({
             'Content-Type': file.mimeType,
             'Content-Disposition': `attachment; filename="${file.originalName || file.name}"`,
@@ -185,7 +262,16 @@ router.get('/:shareId/download', async (req, res) => {
 
         res.send(buffer);
     } catch (error) {
-        console.error('Public download error:', error);
+        logger.error('Public file download failed', {
+            component: 'public',
+            operation: 'download_shared_file_direct',
+            shareId: req.params.shareId,
+            error: {
+                message: error.message,
+                stack: error.stack
+            },
+            ipAddress: req.ip
+        });
         res.status(500).json({ error: error.message });
     }
 });

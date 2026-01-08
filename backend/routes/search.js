@@ -2,6 +2,7 @@ const express = require('express');
 const File = require('../models/File');
 const Folder = require('../models/Folder');
 const auth = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -53,9 +54,31 @@ router.get('/', async (req, res) => {
                 .limit(type === 'folders' ? 50 : 25);
         }
 
+        logger.info('Search completed', {
+            component: 'search',
+            operation: 'search',
+            userId: req.userId.toString(),
+            query: q,
+            searchType: type || 'all',
+            resultsCount: {
+                files: results.files.length,
+                folders: results.folders.length,
+                total: results.files.length + results.folders.length
+            }
+        });
+
         res.json(results);
     } catch (error) {
-        console.error('Search error:', error);
+        logger.error('Search failed', {
+            component: 'search',
+            operation: 'search',
+            userId: req.userId.toString(),
+            query: req.query.q,
+            error: {
+                message: error.message,
+                stack: error.stack
+            }
+        });
         res.status(500).json({ error: error.message });
     }
 });

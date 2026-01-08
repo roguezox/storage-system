@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: stream
+
+  kafka:
+    # Confluent Cloud bootstrap servers
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:pkc-xxxxx.us-east-1.aws.confluent.cloud:9092}
+
+    properties:
+      # Security protocol
+      security.protocol: SASL_SSL
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username='${KAFKA_API_KEY}' password='${KAFKA_API_SECRET}';
+
+      # Confluent Schema Registry
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:https://psrc-xxxxx.us-east-2.aws.confluent.cloud}
+      basic.auth.credentials.source: USER_INFO
+      basic.auth.user.info: ${SCHEMA_REGISTRY_API_KEY}:${SCHEMA_REGISTRY_API_SECRET}
+
+    # Producer configuration
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        compression.type: snappy
+
+    # Consumer configuration
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:stream-consumer-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      properties:
+        spring.json.trusted.packages: "*"
+        session.timeout.ms: 45000
+
+server:
+  port: 8080
+
+# Logging
+logging:
+  level:
+    org.apache.kafka: INFO
+    org.springframework.kafka: INFO
+    com.example.stream: DEBUG

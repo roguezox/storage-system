@@ -4,6 +4,7 @@ const Folder = require('../models/Folder');
 const File = require('../models/File');
 const auth = require('../middleware/auth');
 const { getStorage } = require('../storage');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -135,9 +136,30 @@ router.post('/', async (req, res) => {
         });
 
         await folder.save();
+
+        logger.info('Folder created', {
+            component: 'folders',
+            operation: 'create',
+            userId: req.userId.toString(),
+            folderId: folder._id.toString(),
+            folderName: name,
+            parentId: validParentId ? validParentId.toString() : null,
+            path: path
+        });
+
         res.status(201).json(folder);
     } catch (error) {
-        console.error('Folder creation error:', error);
+        logger.error('Folder creation failed', {
+            component: 'folders',
+            operation: 'create',
+            userId: req.userId.toString(),
+            folderName: req.body.name,
+            parentId: req.body.parentId,
+            error: {
+                message: error.message,
+                stack: error.stack
+            }
+        });
         res.status(500).json({ error: error.message });
     }
 });
@@ -151,6 +173,9 @@ router.put('/:id', async (req, res) => {
             return res.status(400).json({ error: 'Folder name is required' });
         }
 
+        const oldFolder = await Folder.findOne({ _id: req.params.id, ownerId: req.userId, deletedAt: null });
+        const oldName = oldFolder ? oldFolder.name : 'unknown';
+
         const folder = await Folder.findOneAndUpdate(
             { _id: req.params.id, ownerId: req.userId, deletedAt: null },
             { name },
@@ -160,6 +185,15 @@ router.put('/:id', async (req, res) => {
         if (!folder) {
             return res.status(404).json({ error: 'Folder not found' });
         }
+
+        logger.info('Folder renamed', {
+            component: 'folders',
+            operation: 'rename',
+            userId: req.userId.toString(),
+            folderId: folder._id.toString(),
+            oldName: oldName,
+            newName: name
+        });
 
         res.json(folder);
     } catch (error) {
@@ -182,6 +216,15 @@ router.delete('/:id', async (req, res) => {
 
         await softDeleteFolderRecursive(folder._id, req.userId);
 
+        logger.info('Folder moved to trash', {
+            component: 'folders',
+            operation: 'soft_delete',
+            userId: req.userId.toString(),
+            folderId: folder._id.toString(),
+            folderName: folder.name,
+            cascade: true
+        });
+
         res.json({ message: 'Folder moved to trash' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -202,6 +245,16 @@ router.post('/:id/share', async (req, res) => {
         if (!folder) {
             return res.status(404).json({ error: 'Folder not found' });
         }
+
+        logger.info('Folder share link generated', {
+            component: 'folders',
+            operation: 'generate_share',
+            userId: req.userId.toString(),
+            folderId: folder._id.toString(),
+            folderName: folder.name,
+            shareId: shareId,
+            shareUrl: `/public/${shareId}`
+        });
 
         res.json({
             message: 'Share link generated',
@@ -290,7 +343,15 @@ async function permanentDeleteFolderRecursive(folderId, userId) {
         try {
             await storage.delete(file.storageKey);
         } catch (err) {
-            console.error(`Failed to delete ${file.storageKey}:`, err);
+            logger.warn('Failed to delete file from storage', {
+                component: 'folders',
+                operation: 'permanent_delete_recursive',
+                fileId: file._id.toString(),
+                storageKey: file.storageKey,
+                error: {
+                    message: err.message
+                }
+            });
         }
     }
 
@@ -352,6 +413,15 @@ router.post('/:id/restore', async (req, res) => {
 
         await restoreFolderRecursive(folder._id, req.userId);
 
+        logger.info('Folder restored from trash', {
+            component: 'folders',
+            operation: 'restore',
+            userId: req.userId.toString(),
+            folderId: folder._id.toString(),
+            folderName: folder.name,
+            cascade: true
+        });
+
         res.json({ message: 'Folder restored successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -372,6 +442,15 @@ router.delete('/:id/permanent', async (req, res) => {
         }
 
         await permanentDeleteFolderRecursive(folder._id, req.userId);
+
+        logger.info('Folder permanently deleted', {
+            component: 'folders',
+            operation: 'permanent_delete',
+            userId: req.userId.toString(),
+            folderId: folder._id.toString(),
+            folderName: folder.name,
+            cascade: true
+        });
 
         res.json({ message: 'Folder permanently deleted' });
     } catch (error) {
