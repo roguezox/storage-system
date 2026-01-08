@@ -7,11 +7,11 @@
 export function getApiUrl(): string {
     // Client-side: read from window (injected by /config.js at runtime)
     if (typeof window !== 'undefined') {
-        return (window as unknown as { __API_URL__?: string }).__API_URL__ || '';
+        return (window as unknown as { __API_URL__?: string }).__API_URL__ || 'http://localhost:5000';
     }
 
     // Server-side: read from environment variable
-    return process.env.API_URL || '';
+    return process.env.API_URL || 'http://localhost:5000';
 }
 
 // Type declaration for window augmentation

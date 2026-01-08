@@ -14,7 +14,7 @@ const generateUUID = () => crypto.randomUUID();
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 100 * 1024 * 1024 // 100MB limit (configurable via env)
+        fileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600') // 100MB default (100 * 1024 * 1024)
     }
 });
 

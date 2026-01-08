@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { DropZone } from '@/components/DropZone';
 import { UploadProgress, UploadItem } from '@/components/UploadProgress';
 import { foldersAPI, filesAPI } from '@/lib/api';
+import { generateUUID } from '@/lib/uuid';
 import { FiPlus, FiUpload } from 'react-icons/fi';
 
 interface Folder {
@@ -95,7 +96,7 @@ export default function FolderDetailPage() {
 
         // Initialize upload items
         const newUploads: UploadItem[] = selectedFiles.map(file => ({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             file,
             progress: 0,
             status: 'pending' as const,
