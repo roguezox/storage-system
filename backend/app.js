@@ -45,15 +45,10 @@ app.use(requestLogger);
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// MongoDB Connection (lazy connect)
-let isConnected = false;
-
+// MongoDB Connection - Connect eagerly on startup
 const connectDB = async () => {
-    if (isConnected) return;
-
     try {
         await mongoose.connect(process.env.MONGODB_URI);
-        isConnected = true;
         logger.info('MongoDB connection established', {
             component: 'database',
             operation: 'connect',
@@ -75,7 +70,13 @@ const connectDB = async () => {
     }
 };
 
-// Health check routes (defined before DB middleware to ensure liveness probe works)
+// Connect immediately on startup (not lazy - this is for VM/container deployment)
+connectDB().catch(err => {
+    console.error('Failed to connect to MongoDB on startup:', err.message);
+    process.exit(1);
+});
+
+// Health check routes
 app.get('/', (req, res) => {
     res.json({ status: 'ok', message: 'Storage Platform API is running' });
 });
@@ -104,16 +105,6 @@ app.get('/api/health', async (req, res) => {
             error: error.message,
             mongodb: 'error'
         });
-    }
-});
-
-// Connect on first request (for serverless)
-app.use(async (req, res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (err) {
-        res.status(500).json({ error: 'Database connection failed' });
     }
 });
 
