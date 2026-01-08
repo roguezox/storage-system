@@ -10,7 +10,7 @@ class KafkaTransport extends Transport {
     constructor(opts = {}) {
         super(opts);
 
-        this.topic = opts.topic || 'storage-system-logs';
+        this.topic = opts.topic || 'opendrive-logs';
         this.kafkaEnabled = opts.enabled !== false;
 
         if (!this.kafkaEnabled) {
@@ -151,7 +151,7 @@ function createLogger() {
     if (kafkaEnabled) {
         transports.push(
             new KafkaTransport({
-                topic: process.env.KAFKA_TOPIC || 'storage-system-logs',
+                topic: process.env.KAFKA_TOPIC || 'opendrive-logs',
                 enabled: true,
             })
         );

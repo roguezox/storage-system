@@ -1,8 +1,8 @@
 package com.example.stream.service;
 
 import com.example.stream.config.KafkaConfig;
-import com.example.stream.model.Event;
-import com.example.stream.model.Message;
+import com.example.stream.model.LogMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -12,39 +12,67 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class KafkaConsumerService {
 
-    @KafkaListener(topics = KafkaConfig.MESSAGES_TOPIC, groupId = "stream-consumer-group")
-    public void consumeMessage(@Payload Message message,
-                               @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-                               @Header(KafkaHeaders.OFFSET) long offset) {
-        log.info("Received message from partition {}, offset {}: {}", partition, offset, message);
+    private final LokiService lokiService;
+    private final KafkaConfig kafkaConfig;
 
-        // Process the message here
-        processMessage(message);
+    /**
+     * Listen to critical logs (errors + warnings)
+     */
+    @KafkaListener(
+        topics = "#{kafkaConfig.getCriticalTopic()}",
+        groupId = "${spring.kafka.consumer.group-id:stream-consumer-group}"
+    )
+    public void consumeCriticalLogs(
+        @Payload LogMessage logMessage,
+        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+        @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+        @Header(KafkaHeaders.OFFSET) long offset
+    ) {
+        log.info("📛 Received CRITICAL log from topic={}, partition={}, offset={}", topic, partition, offset);
+        log.debug("Critical log: level={}, message={}", logMessage.getLevel(), logMessage.getMessage());
+
+        // Forward to Loki
+        lokiService.pushLog(logMessage, topic);
     }
 
-    @KafkaListener(topics = KafkaConfig.EVENTS_TOPIC, groupId = "stream-consumer-group")
-    public void consumeEvent(@Payload Event event,
-                             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-                             @Header(KafkaHeaders.OFFSET) long offset) {
-        log.info("Received event from partition {}, offset {}: {}", partition, offset, event);
+    /**
+     * Listen to info logs (general application flow)
+     */
+    @KafkaListener(
+        topics = "#{kafkaConfig.getInfoTopic()}",
+        groupId = "${spring.kafka.consumer.group-id:stream-consumer-group}"
+    )
+    public void consumeInfoLogs(
+        @Payload LogMessage logMessage,
+        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+        @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+        @Header(KafkaHeaders.OFFSET) long offset
+    ) {
+        log.debug("ℹ️ Received INFO log from topic={}, partition={}, offset={}", topic, partition, offset);
 
-        // Process the event here
-        processEvent(event);
+        // Forward to Loki
+        lokiService.pushLog(logMessage, topic);
     }
 
-    private void processMessage(Message message) {
-        log.info("Processing message: id={}, sender={}, content={}",
-            message.getId(), message.getSender(), message.getContent());
+    /**
+     * Listen to debug logs (verbose debugging)
+     */
+    @KafkaListener(
+        topics = "#{kafkaConfig.getDebugTopic()}",
+        groupId = "${spring.kafka.consumer.group-id:stream-consumer-group}"
+    )
+    public void consumeDebugLogs(
+        @Payload LogMessage logMessage,
+        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+        @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+        @Header(KafkaHeaders.OFFSET) long offset
+    ) {
+        log.debug("🐛 Received DEBUG log from topic={}, partition={}, offset={}", topic, partition, offset);
 
-        // Add your business logic here
-    }
-
-    private void processEvent(Event event) {
-        log.info("Processing event: eventId={}, eventType={}, payload={}",
-            event.getEventId(), event.getEventType(), event.getPayload());
-
-        // Add your business logic here
+        // Forward to Loki
+        lokiService.pushLog(logMessage, topic);
     }
 }

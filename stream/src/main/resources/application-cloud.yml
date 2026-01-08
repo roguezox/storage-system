@@ -42,6 +42,15 @@ spring:
 server:
   port: 8080
 
+# Kafka topic configuration
+kafka:
+  topic:
+    base: ${KAFKA_TOPIC:opendrive-logs}
+
+# Loki configuration
+loki:
+  url: ${LOKI_URL:http://loki:3100}
+
 # Logging
 logging:
   level:
