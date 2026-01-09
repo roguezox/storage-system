@@ -172,23 +172,22 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
     return (
         <>
             <div className={cn(
-                'group relative flex items-start gap-3 bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-primary)] border border-[var(--border-default)]',
-                'rounded-xl p-4 transition-all duration-300 shadow-[0_1px_3px_rgba(0,0,0,0.2)]',
-                'hover:from-[var(--bg-tertiary)] hover:to-[var(--bg-secondary)] hover:border-[var(--border-hover)]',
-                'hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)]',
-                'before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-b before:from-white/[0.03] before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300',
+                'group relative flex items-start gap-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]',
+                'rounded-lg p-4 transition-all duration-150',
+                'hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-default)]',
+                'hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgba(0,0,0,0.35)]',
                 isDeleting && 'opacity-50'
             )}>
                 <div
                     className="flex-1 cursor-pointer relative z-10"
                     onClick={() => setShowPreview(true)}
                 >
-                    <div className="relative mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--bg-tertiary)] flex items-center justify-center border border-[var(--border-subtle)] shadow-inner transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
+                    <div className="relative mb-3 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-md bg-[var(--bg-elevated)] flex items-center justify-center transition-all duration-150">
                             {getFileIcon()}
                         </div>
                         {isShared && (
-                            <span className="absolute left-12 top-0 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-color)] bg-[var(--accent-bg)] border border-[var(--accent-border)] rounded-md shadow-sm backdrop-blur-sm">
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-[var(--accent-color)] bg-[var(--accent-bg)] border border-[var(--accent-border)] rounded-md">
                                 Shared
                             </span>
                         )}
@@ -220,7 +219,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
                     <button
                         className={cn(
                             'p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-                            'hover:bg-[var(--bg-tertiary)] rounded-lg transition-all duration-300 hover:shadow-md',
+                            'hover:bg-[var(--bg-elevated)] rounded-md transition-all duration-150',
                             'opacity-0 group-hover:opacity-100'
                         )}
                         onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
@@ -230,7 +229,7 @@ export function FileCard({ id, name, originalName, url, mimeType, size, createdA
 
                     {showMenu && (
                         <div
-                            className="absolute right-0 top-8 min-w-[160px] bg-[var(--bg-primary)] border-2 border-[var(--border-default)] rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl overflow-hidden z-50 animate-scale-in"
+                            className="absolute right-0 top-8 min-w-[160px] bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl overflow-hidden z-50 animate-scale-in"
                             onClick={e => e.stopPropagation()}
                         >
                             <button

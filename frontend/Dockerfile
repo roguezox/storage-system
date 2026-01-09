@@ -19,8 +19,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dos2unix for line ending fixes
-RUN apk add --no-cache dos2unix
+# Install dos2unix for line ending fixes and wget for healthcheck
+RUN apk add --no-cache dos2unix wget
 
 # Copy standalone build
 COPY --from=builder /app/.next/standalone ./

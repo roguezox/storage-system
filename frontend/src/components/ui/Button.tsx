@@ -14,9 +14,9 @@ const variantStyles = {
     primary: cn(
         'bg-[var(--accent)] text-white',
         'border border-white/10',
-        'shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(59,130,246,0.25)]',
+        'shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(94,106,210,0.25)]',
         'hover:bg-[var(--accent-hover)]',
-        'hover:shadow-[0_4px_16px_rgba(59,130,246,0.4)]',
+        'hover:shadow-[0_4px_16px_rgba(94,106,210,0.4)]',
         'active:bg-[var(--accent-active)]',
         'focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)]'
     ),
@@ -51,8 +51,8 @@ const variantStyles = {
 
 const sizeStyles = {
     sm: 'h-7 px-3 text-xs rounded-md',
-    md: 'h-9 px-4 text-sm rounded-lg',
-    lg: 'h-11 px-6 text-base rounded-lg'
+    md: 'h-8 px-4 text-sm rounded-md',
+    lg: 'h-10 px-6 text-sm rounded-md'
 };
 
 export function Button({
@@ -68,7 +68,7 @@ export function Button({
         <button
             className={cn(
                 'inline-flex items-center justify-center gap-2 font-medium',
-                'transition-all duration-200 cursor-pointer whitespace-nowrap select-none',
+                'transition-all duration-150 cursor-pointer whitespace-nowrap select-none',
                 'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
                 'active:scale-[0.98]',
                 variantStyles[variant],

@@ -145,7 +145,7 @@ export function Search() {
 
     return (
         <div ref={searchRef} className="relative w-full max-w-[560px] m-0">
-            <div className="relative flex items-center bg-gradient-to-br from-white/[0.03] to-white/[0.01] rounded-[14px] p-0.5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] before:content-[''] before:absolute before:inset-0 before:rounded-[14px] before:p-px before:bg-gradient-to-br before:from-white/8 before:via-white/2 before:to-white/5 before:transition-all before:duration-300 before:pointer-events-none hover:before:from-white/12 hover:before:via-white/4 hover:before:to-white/8 focus-within:before:from-[var(--accent)] focus-within:before:via-[#60a5fa]/50 focus-within:before:to-[var(--accent-hover)] focus-within:before:opacity-80 focus-within:shadow-[0_0_24px_-4px_rgba(37,99,235,0.25),0_4px_16px_-2px_rgba(0,0,0,0.2)]">
+            <div className="relative flex items-center bg-gradient-to-br from-white/[0.03] to-white/[0.01] rounded-[14px] p-0.5 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] before:content-[''] before:absolute before:inset-0 before:rounded-[14px] before:p-px before:bg-gradient-to-br before:from-white/8 before:via-white/2 before:to-white/5 before:transition-all before:duration-300 before:pointer-events-none hover:before:from-white/12 hover:before:via-white/4 hover:before:to-white/8 focus-within:before:from-[var(--accent)] focus-within:before:via-[#8B7AFF]/50 focus-within:before:to-[var(--accent-hover)] focus-within:before:opacity-80 focus-within:shadow-[0_0_24px_-4px_rgba(94,106,210,0.25),0_4px_16px_-2px_rgba(0,0,0,0.2)]">
                 <FiSearch
                     size={18}
                     className={cn(

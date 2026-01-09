@@ -18,19 +18,19 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
             )}
             <input
                 className={cn(
-                    'w-full h-10 px-3.5 rounded-lg',
+                    'w-full h-9 px-3 rounded-md',
                     'bg-[var(--bg-secondary)]',
-                    'border border-[var(--border-default)]',
+                    'border border-[var(--border-subtle)]',
                     'text-[var(--text-primary)] text-sm',
                     'placeholder:text-[var(--text-muted)]',
-                    'transition-all duration-200',
-                    'hover:border-[var(--border-hover)]',
+                    'transition-all duration-150',
+                    'hover:border-[var(--border-default)]',
                     'focus:outline-none',
                     'focus:border-[var(--accent)]',
                     'focus:bg-[var(--bg-primary)]',
-                    'focus:shadow-[0_0_0_1px_var(--accent),0_0_0_4px_var(--accent-subtle)]',
+                    'focus:shadow-[0_0_0_3px_var(--accent-subtle)]',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
-                    error && 'border-[var(--danger)] focus:border-[var(--danger)] focus:shadow-[0_0_0_1px_var(--danger),0_0_0_4px_var(--danger-subtle)]',
+                    error && 'border-[var(--danger)] focus:border-[var(--danger)] focus:shadow-[0_0_0_3px_var(--danger-subtle)]',
                     className
                 )}
                 {...props}
