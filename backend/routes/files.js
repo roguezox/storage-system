@@ -5,8 +5,12 @@ const File = require('../models/File');
 const auth = require('../middleware/auth');
 const { getStorage } = require('../storage');
 const logger = require('../utils/logger');
+const { getEventBus } = require('../utils/eventBus');
 
 const router = express.Router();
+
+// Get EventBus instance (works in both monolith and microservices mode)
+const eventBus = getEventBus();
 
 const generateUUID = () => crypto.randomUUID();
 
@@ -92,6 +96,54 @@ router.post('/', upload.array('files', 10), async (req, res) => {
                     storageProvider: storage.getType(),
                     storageKey: storageKey,
                     duration: uploadDuration
+                });
+
+                /**
+                 * PUBLISH EVENT: file.uploaded
+                 * ═══════════════════════════════════════════════════════════
+                 *
+                 * After successfully uploading a file, publish an event.
+                 *
+                 * This event will be consumed by:
+                 * - Thumbnail worker (generates thumbnail for images)
+                 * - Search indexer (adds file to search index)
+                 * - Analytics service (tracks upload statistics)
+                 * - Audit logger (records file operations)
+                 *
+                 * In MONOLITH mode:
+                 *   → Workers receive event immediately (in-memory)
+                 *   → All processing happens in same process
+                 *
+                 * In MICROSERVICES mode:
+                 *   → Event sent to Kafka
+                 *   → Workers in separate containers consume event
+                 *   → Async processing, no blocking
+                 *
+                 * We don't await this publish because:
+                 * - User doesn't need to wait for thumbnail/indexing
+                 * - Faster response time
+                 * - Fire-and-forget pattern
+                 */
+                eventBus.publish('file.uploaded', {
+                    fileId: fileDoc._id.toString(),
+                    userId: req.userId.toString(),
+                    fileName: file.originalname,
+                    mimeType: file.mimetype,
+                    fileSize: size,
+                    storageKey: storageKey,
+                    storageProvider: storage.getType(),
+                    folderId: folderId
+                }).catch(error => {
+                    // Log error but don't fail the upload
+                    logger.error('Failed to publish file.uploaded event', {
+                        component: 'files',
+                        operation: 'publish_event',
+                        fileId: fileDoc._id.toString(),
+                        error: {
+                            message: error.message,
+                            stack: error.stack
+                        }
+                    });
                 });
             } catch (err) {
                 logger.error('File upload failed', {
@@ -267,6 +319,34 @@ router.delete('/:id', async (req, res) => {
             fileName: file.originalName,
             fileSize: file.size,
             storageKey: file.storageKey
+        });
+
+        /**
+         * PUBLISH EVENT: file.deleted
+         * ═══════════════════════════════════════════════════════════════
+         *
+         * Publish event when file is moved to trash (soft delete).
+         *
+         * Consumers:
+         * - Search indexer: Remove file from search results
+         * - Analytics: Track deletion patterns
+         * - Audit logger: Record deletion for compliance
+         *
+         * Fire-and-forget: Don't wait for event processing
+         */
+        eventBus.publish('file.deleted', {
+            fileId: file._id.toString(),
+            userId: req.userId.toString(),
+            fileName: file.originalName,
+            fileSize: file.size,
+            storageKey: file.storageKey
+        }).catch(error => {
+            logger.error('Failed to publish file.deleted event', {
+                component: 'files',
+                operation: 'publish_event',
+                fileId: file._id.toString(),
+                error: { message: error.message }
+            });
         });
 
         res.json({ message: 'File moved to trash' });

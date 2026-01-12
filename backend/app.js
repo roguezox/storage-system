@@ -81,6 +81,34 @@ app.get('/', (req, res) => {
     res.json({ status: 'ok', message: 'Storage Platform API is running' });
 });
 
+// Health check endpoint (without /api prefix) for load balancer compatibility
+app.get('/health', async (req, res) => {
+    try {
+        const dbState = mongoose.connection.readyState;
+        const dbStatus = ['disconnected', 'connected', 'connecting', 'disconnecting'][dbState];
+
+        if (dbState !== 1) {
+            return res.status(503).json({
+                status: 'unhealthy',
+                message: 'Database connection unavailable',
+                mongodb: dbStatus
+            });
+        }
+
+        res.json({
+            status: 'ok',
+            message: 'Storage Platform API is running',
+            mongodb: dbStatus
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: 'unhealthy',
+            message: error.message
+        });
+    }
+});
+
+// Health check endpoint (with /api prefix) for compatibility
 app.get('/api/health', async (req, res) => {
     try {
         const dbState = mongoose.connection.readyState;
@@ -122,7 +150,68 @@ app.use('/api/files', fileRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/search', searchRoutes);
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LOAD WORKERS (Monolith Mode Only)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * In MONOLITH mode, workers run in the same process as the API server.
+ * This keeps everything simple for small deployments.
+ *
+ * In MICROSERVICES mode, workers run as separate containers/processes.
+ * Don't load them here - they're started independently.
+ *
+ * How this works:
+ * ────────────────
+ * 1. Check DEPLOYMENT_MODE environment variable
+ * 2. If 'microservices': Skip loading workers (they run separately)
+ * 3. Otherwise (monolith/undefined): Load workers into this process
+ * 4. Workers subscribe to EventBus events
+ * 5. When events published, workers process them in-memory
+ *
+ * Example:
+ * ────────────────
+ * User uploads file.jpg
+ *   → File route: eventBus.publish('file.uploaded', data)
+ *   → EventEmitter: Immediately calls thumbnail.js handler
+ *   → Thumbnail worker: Processes in same process
+ *   → Done!
+ *
+ * Why conditional loading?
+ * ────────────────
+ * - MONOLITH: Need workers in same process (no Kafka, no separate containers)
+ * - MICROSERVICES: Workers run separately (would duplicate processing if loaded here)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+const deploymentMode = (process.env.DEPLOYMENT_MODE || 'monolith').toLowerCase();
 
+if (deploymentMode !== 'microservices') {
+    logger.info('Loading background workers (monolith mode)', {
+        component: 'application',
+        operation: 'load_workers',
+        mode: deploymentMode
+    });
+
+    /**
+     * Require worker files - this executes their subscription code
+     * Each worker calls eventBus.subscribe() when loaded
+     */
+    require('./workers/thumbnail');
+    require('./workers/searchIndexer');
+
+    logger.info('Background workers loaded successfully', {
+        component: 'application',
+        operation: 'load_workers',
+        workers: ['thumbnail', 'searchIndexer']
+    });
+} else {
+    logger.info('Skipping worker loading (microservices mode - workers run in separate containers)', {
+        component: 'application',
+        operation: 'load_workers',
+        mode: deploymentMode
+    });
+}
 
 // Start server if run directly
 if (require.main === module) {

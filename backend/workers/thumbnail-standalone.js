@@ -1,0 +1,48 @@
+const mongoose = require('mongoose');
+const eventBus = require('../utils/eventBus');
+const logger = require('../utils/logger');
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000
+}).then(() => {
+    logger.info('[THUMBNAIL WORKER] Connected to MongoDB');
+}).catch(err => {
+    logger.error('[THUMBNAIL WORKER] MongoDB connection error:', err);
+    process.exit(1);
+});
+
+// Subscribe to file upload events
+eventBus.subscribe('file.uploaded', async (data) => {
+    try {
+        logger.info('[THUMBNAIL WORKER] Processing file', { fileId: data.fileId });
+
+        // TODO: Generate thumbnail logic here
+        // For now, just log
+
+        logger.info('[THUMBNAIL WORKER] Thumbnail generated', { fileId: data.fileId });
+    } catch (error) {
+        logger.error('[THUMBNAIL WORKER] Error processing file', {
+            fileId: data.fileId,
+            error: error.message
+        });
+    }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+    logger.info('[THUMBNAIL WORKER] Shutting down gracefully...');
+    await eventBus.disconnect();
+    await mongoose.connection.close();
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    logger.info('[THUMBNAIL WORKER] Shutting down gracefully...');
+    await eventBus.disconnect();
+    await mongoose.connection.close();
+    process.exit(0);
+});
+
+logger.info('[THUMBNAIL WORKER] Started and ready to process events');

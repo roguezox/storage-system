@@ -1,5 +1,6 @@
 const LocalStorageProvider = require('./LocalStorageProvider');
 const S3StorageProvider = require('./S3StorageProvider');
+const GCSStorageProvider = require('./GCSStorageProvider');
 
 let storageInstance = null;
 
@@ -15,6 +16,12 @@ function getStorage() {
     const provider = process.env.STORAGE_PROVIDER || 'local';
 
     switch (provider.toLowerCase()) {
+        case 'gcs':
+        case 'google':
+        case 'google-cloud':
+            storageInstance = new GCSStorageProvider();
+            console.log('📦 Using Google Cloud Storage');
+            break;
         case 's3':
         case 'minio':
             storageInstance = new S3StorageProvider();
