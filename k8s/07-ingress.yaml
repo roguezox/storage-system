@@ -1,0 +1,93 @@
+# ============================================
+# Ingress Configuration
+# Routes external traffic to frontend and API services
+# ============================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opendrive-ingress
+  namespace: opendrive
+  annotations:
+    # Use GCE ingress controller (default for GKE)
+    kubernetes.io/ingress.class: "gce"
+
+    # Optional: Reserve static IP
+    # kubernetes.io/ingress.global-static-ip-name: "opendrive-static-ip"
+
+    # Optional: SSL/TLS configuration
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # kubernetes.io/ingress.allow-http: "false"
+
+    # Timeout settings
+    kubernetes.io/ingress.backend-timeout: "300"
+
+    # CORS settings (if needed)
+    # nginx.ingress.kubernetes.io/enable-cors: "true"
+    # nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  rules:
+  - http:
+      paths:
+      # API routes (must come first for proper matching)
+      - path: /api/*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: opendrive-api-service
+            port:
+              number: 80
+
+      # Frontend routes (catch-all)
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: opendrive-frontend-service
+            port:
+              number: 80
+
+  # Optional: TLS configuration
+  # tls:
+  # - hosts:
+  #   - your-domain.com
+  #   secretName: opendrive-tls-secret
+
+---
+# ============================================
+# Alternative: nginx-ingress (if using nginx-ingress-controller)
+# Comment out the above Ingress and uncomment this one
+# ============================================
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: opendrive-ingress-nginx
+#   namespace: opendrive
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+#     nginx.ingress.kubernetes.io/rewrite-target: /$2
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+#     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+# spec:
+#   rules:
+#   - host: your-domain.com
+#     http:
+#       paths:
+#       - path: /api(/|$)(.*)
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: opendrive-api-service
+#             port:
+#               number: 80
+#       - path: /()(.*)
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: opendrive-frontend-service
+#             port:
+#               number: 80
+#   tls:
+#   - hosts:
+#     - your-domain.com
+#     secretName: opendrive-tls-secret

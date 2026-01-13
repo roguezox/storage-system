@@ -818,8 +818,10 @@ class KafkaEventBus {
                  * Self-hosted Kafka can use 1 for development
                  *
                  * We detect Confluent Cloud by checking for SASL auth
+                 * (supports both KAFKA_SASL_USERNAME and KAFKA_API_KEY naming)
                  */
-                const replicationFactor = process.env.KAFKA_SASL_USERNAME ? 3 : 1;
+                const isConfluentCloud = process.env.KAFKA_SASL_USERNAME || process.env.KAFKA_API_KEY;
+                const replicationFactor = isConfluentCloud ? 3 : 1;
 
                 await this.admin.createTopics({
                     topics: topicsToCreate.map(t => ({

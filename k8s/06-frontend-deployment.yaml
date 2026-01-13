@@ -1,0 +1,93 @@
+# ============================================
+# Frontend Deployment
+# Next.js web application
+# ============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendrive-frontend
+  namespace: opendrive
+  labels:
+    app: opendrive-frontend
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opendrive-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: opendrive-frontend
+        tier: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: gcr.io/PROJECT_ID/opendrive-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        # Backend API URL (internal ClusterIP service)
+        - name: API_URL
+          value: "http://opendrive-api-service"
+        - name: NODE_ENV
+          value: "production"
+
+        # Resource Limits
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+---
+# ============================================
+# Frontend Service (LoadBalancer)
+# External-facing service with public IP
+# ============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: opendrive-frontend-service
+  namespace: opendrive
+  labels:
+    app: opendrive-frontend
+    tier: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: opendrive-frontend
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 3000
+  sessionAffinity: None

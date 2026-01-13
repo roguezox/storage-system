@@ -1,0 +1,173 @@
+# ============================================
+# Search Indexer Worker Deployment
+# Standalone microservice for search indexing
+# ============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opendrive-search-worker
+  namespace: opendrive
+  labels:
+    app: opendrive-search-worker
+    tier: worker
+    component: search
+spec:
+  replicas: 1  # Initial replicas (HPA will adjust)
+  selector:
+    matchLabels:
+      app: opendrive-search-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: opendrive-search-worker
+        tier: worker
+        component: search
+    spec:
+      containers:
+      - name: search-worker
+        image: gcr.io/PROJECT_ID/opendrive-backend:latest
+        imagePullPolicy: Always
+        command: ["node", "workers/searchIndexer-standalone.js"]
+        env:
+        # Service Configuration
+        - name: SERVICE_NAME
+          value: "search-worker"
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: opendrive-config
+              key: NODE_ENV
+
+        # Database Configuration
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: opendrive-secrets
+              key: mongodb-uri
+
+        # Storage Configuration (may need for file content indexing)
+        - name: STORAGE_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: opendrive-config
+              key: STORAGE_PROVIDER
+        - name: GCS_PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: opendrive-secrets
+              key: gcs-project-id
+              optional: true
+        - name: GCS_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: opendrive-secrets
+              key: gcs-bucket
+              optional: true
+
+        # Logging Configuration
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: opendrive-config
+              key: LOG_LEVEL
+
+        # Kafka Configuration
+        - name: KAFKA_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: opendrive-config
+              key: KAFKA_ENABLED
+        - name: KAFKA_GROUP_ID
+          value: "search-indexer-workers"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            secretKeyRef:
+              name: opendrive-secrets
+              key: kafka-bootstrap-servers
+              optional: true
+        - name: KAFKA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: opendrive-secrets
+              key: kafka-api-key
+              optional: true
+        - name: KAFKA_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: opendrive-secrets
+              key: kafka-api-secret
+              optional: true
+
+        # Resource Limits
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+
+        # Liveness Probe (check if process is running)
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - -f
+            - "node.*searchIndexer-standalone"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+
+---
+# ============================================
+# Horizontal Pod Autoscaler for Search Worker
+# Scales between 1-3 pods based on CPU
+# ============================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: opendrive-search-worker-hpa
+  namespace: opendrive
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: opendrive-search-worker
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 1
+        periodSeconds: 30
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Min
