@@ -7,10 +7,12 @@
 export function getApiUrl(): string {
     // Client-side: read from window (injected by /config.js at runtime)
     if (typeof window !== 'undefined') {
-        return (window as unknown as { __API_URL__?: string }).__API_URL__ || 'http://localhost:5000';
+        // Empty string means same-origin (relative paths work with ingress)
+        return (window as unknown as { __API_URL__?: string }).__API_URL__ || '';
     }
 
     // Server-side: read from environment variable
+    // For Kubernetes: use internal service name; for local dev: use localhost
     return process.env.API_URL || 'http://localhost:5000';
 }
 

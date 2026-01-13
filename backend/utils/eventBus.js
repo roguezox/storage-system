@@ -530,10 +530,10 @@ class KafkaEventBus {
          *
          * ───────────────────────────────────────────────────────────────────
          */
-        const brokers = (process.env.KAFKA_BROKERS || '').split(',').filter(Boolean);
+        const brokers = (process.env.KAFKA_BROKERS || process.env.KAFKA_BOOTSTRAP_SERVERS || '').split(',').filter(Boolean);
 
         if (brokers.length === 0) {
-            throw new Error('KAFKA_BROKERS environment variable is required for microservices mode');
+            throw new Error('KAFKA_BROKERS or KAFKA_BOOTSTRAP_SERVERS environment variable is required for microservices mode');
         }
 
         const clientId = process.env.KAFKA_CLIENT_ID || 'opendrive';
@@ -561,13 +561,16 @@ class KafkaEventBus {
         /**
          * Add SSL/SASL authentication if credentials provided
          * This is needed for Confluent Cloud and other managed Kafka services
+         * Supports both KAFKA_SASL_USERNAME/PASSWORD and KAFKA_API_KEY/SECRET naming
          */
-        if (process.env.KAFKA_SASL_USERNAME && process.env.KAFKA_SASL_PASSWORD) {
+        const saslUsername = process.env.KAFKA_SASL_USERNAME || process.env.KAFKA_API_KEY;
+        const saslPassword = process.env.KAFKA_SASL_PASSWORD || process.env.KAFKA_API_SECRET;
+        if (saslUsername && saslPassword) {
             kafkaConfig.ssl = true;
             kafkaConfig.sasl = {
                 mechanism: 'plain', // SASL/PLAIN authentication
-                username: process.env.KAFKA_SASL_USERNAME,
-                password: process.env.KAFKA_SASL_PASSWORD
+                username: saslUsername,
+                password: saslPassword
             };
         }
 
