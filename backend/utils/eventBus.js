@@ -630,7 +630,7 @@ class KafkaEventBus {
             mode: 'kafka',
             brokers: brokers,
             clientId: clientId,
-            authenticated: !!(process.env.KAFKA_SASL_USERNAME),
+            authenticated: !!(process.env.KAFKA_SASL_USERNAME || process.env.KAFKA_API_KEY),
             message: 'Events will be sent to Kafka cluster'
         });
     }
@@ -1097,6 +1097,12 @@ class KafkaEventBus {
      */
     async subscribe(topic, handler) {
         try {
+            // Ensure producer is connected and topics exist before subscribing
+            // This creates the topic if it doesn't exist
+            if (!this.connected) {
+                await this.connect();
+            }
+
             /**
              * Generate consumer group ID
              *
