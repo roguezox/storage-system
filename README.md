@@ -65,38 +65,47 @@ Single VM deployment with Docker Compose. Best for small teams and personal use.
                                     Internet
                                         |
                                         v
-                    +-------------------+-------------------+
-                    |           GCP Compute Engine          |
-                    |               (e2-medium)             |
+                    +---------------------------------------+
+                    |         GCP Compute Engine            |
+                    |             (e2-medium)               |
                     |                                       |
                     |   +-------------------------------+   |
                     |   |        Docker Compose         |   |
                     |   |                               |   |
-                    |   |   +--------+    +--------+   |   |
-                    |   |   |Frontend|    | Backend|   |   |
-                    |   |   | :3000  |--->|  :5000 |   |   |
-                    |   |   +--------+    +----+---+   |   |
-                    |   |                      |       |   |
-                    |   |                      v       |   |
-                    |   |               +----------+   |   |
-                    |   |               | MongoDB  |   |   |
-                    |   |               | (embed)  |   |   |
-                    |   |               +----------+   |   |
+                    |   |   +--------+    +--------+    |   |
+                    |   |   |Frontend|    | Backend|    |   |
+                    |   |   | :3000  |--->|  :5000 |    |   |
+                    |   |   +--------+    +----+---+    |   |
+                    |   |                      |        |   |
+                    |   |         +------------+        |   |
+                    |   |         |                     |   |
+                    |   |         v                     |   |
+                    |   |   +----------+                |   |
+                    |   |   | MongoDB  |                |   |
+                    |   |   | (embed)  |                |   |
+                    |   |   +----------+                |   |
+                    |   +-------------------------------+   |
+                    |                 |                     |
+                    |                 v (optional)          |
+                    |   +-------------------------------+   |
+                    |   |       Confluent Cloud         |   |
+                    |   |    (Kafka Logging - optional) |   |
                     |   +-------------------------------+   |
                     |                                       |
                     |   Storage: Local Volume or GCS        |
                     +---------------------------------------+
 
-Cost: ~$25-50/month
+Cost: ~$25-50/month (+ ~$10/mo if Kafka enabled)
 Users: Up to 1,000
 Setup: 15 minutes
 ```
 
 **Components:**
 - Frontend (Next.js) - User interface
-- Backend (Express) - API server with embedded MongoDB
+- Backend (Express) - API server
+- MongoDB (embedded) - Database with persistent volume
+- Kafka (optional) - Centralized logging to Confluent Cloud
 - Nginx - Reverse proxy with SSL termination
-- Docker volumes - Persistent storage
 
 ---
 
@@ -122,23 +131,24 @@ Microservices architecture with horizontal auto-scaling. Best for production and
     |  | (2 pod)|            |(2-10)  |  |(2-10)  |           | (1 pod)| |
     |  +--------+            +---+----+  +---+----+           +---+----+ |
     |                            |           |                    ^      |
-    |                    +-------+-----------+-------+            |      |
-    |                    |                           |            |      |
-    |                    v                           v            |      |
-    |             +------------+             +------------+       |      |
-    |             | Thumbnail  |             |   Search   |       |      |
-    |             |   Worker   |             |   Worker   |       |      |
-    |             |  (1-5 HPA) |             |  (1-3 HPA) |       |      |
-    |             +-----+------+             +-----+------+       |      |
-    |                   |                          |              |      |
-    |                   +--------+    +------------+              |      |
-    |                            |    |                           |      |
-    |                            v    v                           |      |
-    |                     +----------------+                      |      |
-    |                     | Confluent Kafka|----------------------+      |
-    |                     |  (Event Bus)   |                             |
-    |                     +----------------+                             |
-    |                                                                    |
+    |                            +-----------+                    |      |
+    |                                  |                          |      |
+    |              +-------------------+-------------------+      |      |
+    |              |                   |                   |      |      |
+    |              v                   v                   v      |      |
+    |   +------------------+   +----------------+   +------------+|      |
+    |   |  Confluent Kafka |   | Confluent Kafka|   |   Stream   ||      |
+    |   |  (Task Events)   |   | (Log Events)   |-->|  Service   |+      |
+    |   +--------+---------+   +----------------+   +-----+------+       |
+    |            |                                        |              |
+    |     +------+------+                                 v              |
+    |     |             |                          +------+------+       |
+    |     v             v                          |    Loki     |       |
+    |  +--------+  +--------+                      | (Log Store) |       |
+    |  |Thumbnail|  | Search |                      +-------------+       |
+    |  | Worker |  | Worker |                                            |
+    |  |(1-5 HPA)| |(1-3 HPA)|                                            |
+    |  +--------+  +--------+                                            |
     +-------------------------------------------------------------------+
                     |                               |
                     v                               v
@@ -152,14 +162,18 @@ Users: 10,000+
 Setup: 30-45 minutes
 ```
 
+**Kafka Topics:**
+- **Task Events:** `task-thumbnail`, `task-search` → Workers
+- **Log Events:** `opendrive-logs-critical/info/debug` → Stream → Loki → Grafana
+
 **Components:**
 - **API Gateway** (2-10 pods, HPA) - RESTful API with horizontal scaling
-- **Thumbnail Worker** (1-5 pods, HPA) - Async image processing
-- **Search Worker** (1-3 pods, HPA) - Full-text search indexing
+- **Thumbnail Worker** (1-5 pods, HPA) - Async image processing via Kafka
+- **Search Worker** (1-3 pods, HPA) - Full-text search indexing via Kafka
 - **Frontend** (2 pods) - Next.js application
-- **Kafka** - Event bus for async operations (Confluent Cloud)
-- **Grafana Stack** - Loki + Promtail for centralized logging
-- **Stream Service** - Kafka to Loki log bridge
+- **Kafka** - Event bus for workers + centralized logging (Confluent Cloud)
+- **Stream Service** - Kafka consumer that pushes logs to Loki
+- **Grafana Stack** - Loki for log storage, Grafana for visualization
 
 ---
 
