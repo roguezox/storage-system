@@ -32,7 +32,7 @@ Perfect for development and testing without any cloud setup.
 - Application at http://localhost:8080
 - No registration or credentials needed
 
-📚 [Full Local Setup Guide](README_KAFKA.md)
+See: [Full Local Setup Guide](README_KAFKA.md)
 
 ### Option 2: Confluent Cloud (Managed)
 
@@ -53,7 +53,7 @@ cp .env.example .env
 - Built-in monitoring and alerting
 - $400 in free credits to start
 
-📚 [Full Confluent Cloud Setup Guide](README_CONFLUENT_CLOUD.md)
+See: [Full Confluent Cloud Setup Guide](README_CONFLUENT_CLOUD.md)
 
 ## Project Structure
 

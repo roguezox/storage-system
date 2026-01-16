@@ -151,16 +151,16 @@ chmod +x deploy-gke-microservices.sh
 ```
 
 The script will:
-1. ✓ Verify prerequisites
-2. ✓ Configure GCP project
-3. ✓ Create GCS bucket and service account
-4. ✓ Create GKE cluster (2 nodes, autoscaling to 10)
-5. ✓ Clone repository and build Docker images
-6. ✓ Push images to Google Container Registry
-7. ✓ Deploy all Kubernetes manifests
-8. ✓ Configure secrets and ConfigMaps
-9. ✓ Wait for all pods to be ready
-10. ✓ Output access URLs
+1. Verify prerequisites
+2. Configure GCP project
+3. Create GCS bucket and service account
+4. Create GKE cluster (2 nodes, autoscaling to 10)
+5. Clone repository and build Docker images
+6. Push images to Google Container Registry
+7. Deploy all Kubernetes manifests
+8. Configure secrets and ConfigMaps
+9. Wait for all pods to be ready
+10. Output access URLs
 
 **Estimated time**: 10-15 minutes
 
