@@ -54,25 +54,23 @@ public class LokiService {
     /**
      * Build Loki push request in the required format
      * https://grafana.com/docs/loki/latest/api/#push-log-entries-to-loki
+     * 
+     * Expected format:
+     * {
+     *   "streams": [{
+     *     "stream": { "job": "opendrive", "level": "info", ... },
+     *     "values": [[ "<timestamp_ns>", "<log_line>" ]]
+     *   }]
+     * }
      */
     private Map<String, Object> buildLokiRequest(LogMessage logMessage, String topic) throws JsonProcessingException {
-        // Labels for the log stream
+        // Labels for the log stream - passed directly as key-value pairs
         Map<String, String> labels = new HashMap<>();
         labels.put("job", "opendrive");
-        labels.put("level", logMessage.getLevel());
+        labels.put("level", logMessage.getLevel() != null ? logMessage.getLevel() : "info");
         labels.put("service", logMessage.getService() != null ? logMessage.getService() : "unknown");
         labels.put("environment", logMessage.getEnvironment() != null ? logMessage.getEnvironment() : "production");
         labels.put("topic", topic);
-
-        // Convert labels to Loki format: {key="value",key2="value2"}
-        StringBuilder labelString = new StringBuilder("{");
-        labels.forEach((key, value) -> {
-            if (labelString.length() > 1) {
-                labelString.append(",");
-            }
-            labelString.append(key).append("=\"").append(value).append("\"");
-        });
-        labelString.append("}");
 
         // Timestamp in nanoseconds
         String timestamp = String.valueOf(System.currentTimeMillis() * 1_000_000);
@@ -80,14 +78,14 @@ public class LokiService {
         // Log line (JSON string)
         String logLine = objectMapper.writeValueAsString(logMessage);
 
-        // Build stream
-        Map<String, Object> stream = new HashMap<>();
-        stream.put("stream", Map.of("labels", labelString.toString()));
-        stream.put("values", List.of(List.of(timestamp, logLine)));
+        // Build stream - labels go directly under "stream" as key-value pairs
+        Map<String, Object> streamEntry = new HashMap<>();
+        streamEntry.put("stream", labels);  // Labels as direct map, not nested
+        streamEntry.put("values", List.of(List.of(timestamp, logLine)));
 
         // Build request
         Map<String, Object> request = new HashMap<>();
-        request.put("streams", List.of(stream));
+        request.put("streams", List.of(streamEntry));
 
         return request;
     }
